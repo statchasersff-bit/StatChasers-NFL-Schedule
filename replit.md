@@ -1,6 +1,6 @@
-# [Project name]
+# StatChasers NFL Schedule
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A premium interactive 2026 NFL schedule tool for fantasy football players.
 
 ## Run & Operate
 
@@ -22,15 +22,22 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/nfl-schedule/src/App.tsx` — responsive weekly, team, bye-week, insights, and season-matrix experience.
+- `artifacts/nfl-schedule/src/index.css` — StatChasers navy/brass visual tokens and responsive layout rules.
+- `artifacts/api-server/src/routes/nfl.ts` — normalized nflverse schedule feed with server-side caching and team metadata.
+- `lib/api-spec/openapi.yaml` — source-of-truth contract for the schedule API.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The UI derives every view from one normalized season payload to keep weekly, team, matrix, bye, and insights data consistent.
+- Schedule data is fetched server-side from nflverse and cached in memory for six hours; pre-season schedule files can remain incomplete without fabricated kickoff details.
+- Team codes are centralized and legacy feed abbreviations are normalized at the API boundary.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Browse the 2026 regular season by week, team, or full-season matrix.
+- Search teams by name, city, or abbreviation; inspect byes, primetime, divisional, and international games.
+- Share filtered views through URL state without full page reloads.
 
 ## User preferences
 
@@ -38,7 +45,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The API workflow must be running for the schedule client hook to resolve through `/api`.
+- nflverse is authoritative for the normalized feed; flexible future weeks may have incomplete dates/times and must render as TBD rather than guessed values.
 
 ## Pointers
 

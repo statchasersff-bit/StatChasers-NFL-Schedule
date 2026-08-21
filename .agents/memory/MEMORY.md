@@ -1,0 +1,1 @@
+- [NFL schedule feed](nfl-schedule-feed.md) — keep the schedule server-normalized, cached, and tolerant of incomplete future weeks and feed code aliases.
