@@ -1,0 +1,1499 @@
+# Build a Premium StatChasers 2026 NFL Schedule Tool
+
+I want you to build a polished, production-ready **2026 NFL Schedule** tool for StatChasers.
+
+This should NOT look like a generic sports schedule, basic HTML table, or NFL.com clone.
+
+The goal is to create a premium interactive schedule experience that feels like a native StatChasers fantasy football tool.
+
+---
+
+# 1. PURPOSE
+
+Build a tool where users can quickly:
+
+* View the complete 2026 NFL schedule
+* Browse by week
+* Filter by NFL team
+* See bye weeks
+* See dates and kickoff times
+* See TV/network information when available
+* Identify primetime games
+* Identify international/holiday/special games
+* View an individual team's complete schedule
+* Quickly understand home vs. away
+* See completed scores once games begin
+* Navigate between weeks extremely quickly
+* Use the schedule easily on desktop and mobile
+
+This should ultimately be more useful to a fantasy football player than a standard NFL schedule page.
+
+---
+
+# 2. TECH STACK
+
+Use:
+
+* React
+* Vite
+* TypeScript if the existing project supports it
+* Existing Express backend if server-side endpoints are needed
+* CSS using our existing StatChasers design language
+* No heavy UI framework unless already installed
+* No unnecessary dependencies
+
+Keep components modular and reusable.
+
+Suggested structure:
+
+```text
+src/
+  components/
+    nfl-schedule/
+      ScheduleHeader
+      ScheduleControls
+      WeekSelector
+      ScheduleGameCard
+      TeamScheduleView
+      WeeklyScheduleView
+      ScheduleMatrix
+      ByeWeekPanel
+      ScheduleInsights
+      TeamFilter
+      GameBadge
+  data/
+  hooks/
+  utils/
+  pages/
+```
+
+Do not put the entire tool into one massive component.
+
+---
+
+# 3. DATA
+
+We need the REAL 2026 NFL schedule.
+
+Do not hardcode fake schedules or placeholder matchups.
+
+Preferred data architecture:
+
+### Primary schedule source
+
+Use machine-readable NFL schedule data from nflverse.
+
+nflverse maintains NFL game/schedule data and is much easier to consume programmatically than scraping website HTML.
+
+Fetch the data SERVER-SIDE where possible.
+
+Filter it to:
+
+```text
+season = 2026
+game_type = REG
+```
+
+The application should then normalize the data into something like:
+
+```js
+{
+  id,
+  season,
+  week,
+  date,
+  time,
+  homeTeam,
+  awayTeam,
+  homeScore,
+  awayScore,
+  status,
+  network,
+  stadium,
+  location,
+  international,
+  primetime,
+  divisionGame
+}
+```
+
+Cache schedule data so we are not downloading an external file every time a user opens the page.
+
+Schedule data does not need to refresh constantly.
+
+A cache lasting several hours is fine before the regular season.
+
+During the season, scores/status data can be refreshed more frequently if we later connect a live-data source.
+
+### Validation
+
+Use the official NFL schedule as the authoritative reference if there is ever a discrepancy.
+
+IMPORTANT:
+
+Weeks 16-18 can contain games whose exact dates/times/networks are determined later because of NFL flexible scheduling.
+
+The UI needs to support:
+
+```text
+TBD
+```
+
+instead of assuming every game has a final kickoff time.
+
+Never display a made-up kickoff time.
+
+---
+
+# 4. TEAM DATA
+
+Create a centralized team configuration.
+
+Example:
+
+```js
+{
+  code: "PHI",
+  name: "Philadelphia Eagles",
+  shortName: "Eagles",
+  city: "Philadelphia",
+  conference: "NFC",
+  division: "NFC East",
+  logo: "...",
+  primaryColor: "...",
+  secondaryColor: "..."
+}
+```
+
+Support all 32 teams.
+
+Use this same configuration throughout the tool rather than repeating team information.
+
+---
+
+# 5. MAIN TOOL LAYOUT
+
+The primary view should be:
+
+## 2026 NFL Schedule
+
+Under the title:
+
+```text
+Explore every matchup of the 2026 NFL season by week or team.
+Filter the schedule, find bye weeks, and quickly see when every team plays.
+```
+
+Keep the intro relatively compact.
+
+Then build the main control area.
+
+---
+
+# 6. TOP CONTROLS
+
+Create a premium toolbar containing:
+
+### View
+
+Segmented control:
+
+```text
+By Week | By Team | Full Season
+```
+
+Default:
+
+```text
+By Week
+```
+
+### Week
+
+Dropdown or selector:
+
+```text
+Week 1
+Week 2
+...
+Week 18
+```
+
+### Team
+
+Dropdown:
+
+```text
+All Teams
+Arizona Cardinals
+Atlanta Falcons
+...
+```
+
+### Game Type / Filter
+
+Options:
+
+```text
+All Games
+Primetime
+Division
+International
+Holiday
+```
+
+Do not clutter the interface with too many filters.
+
+Desktop controls can appear horizontally.
+
+Mobile controls should stack cleanly.
+
+---
+
+# 7. WEEK SELECTOR
+
+I want a premium horizontal week navigator.
+
+Example:
+
+```text
+←  WEEK 1   2   3   4   5   6   7   8   9   ...   18  →
+```
+
+Selected week should have a strong StatChasers gold treatment.
+
+Users should be able to:
+
+* Click a week
+* Use Previous Week
+* Use Next Week
+* Swipe/scroll horizontally on mobile
+
+Do NOT make 18 huge buttons wrap into multiple ugly rows.
+
+Use horizontal scrolling on smaller screens.
+
+---
+
+# 8. WEEK HEADER
+
+When viewing a week, display:
+
+```text
+WEEK 1
+September 9 – September 15
+16 Games
+```
+
+Below it, optionally show a very small summary:
+
+```text
+1 International • 4 Primetime • 8 Divisional
+```
+
+Only show information that actually applies.
+
+---
+
+# 9. GAME CARDS
+
+This is the most important visual component.
+
+Each game should be a premium compact matchup card.
+
+Example concept:
+
+```text
+SUNDAY • 1:00 PM ET
+CBS
+
+[logo] Buffalo Bills
+        0-0
+
+             @
+
+[logo] Miami Dolphins
+        0-0
+
+Hard Rock Stadium
+Miami, FL
+
+DIVISION
+```
+
+However, do NOT make cards overly tall.
+
+Keep information hierarchy very clean.
+
+### Game card hierarchy
+
+Top:
+
+```text
+SUN • SEP 20
+1:00 PM ET
+CBS
+```
+
+Middle:
+
+Away team
+
+logo + abbreviation/name
+
+Then a subtle:
+
+```text
+@
+```
+
+Home team
+
+logo + abbreviation/name
+
+Bottom:
+
+* stadium/location if available
+* badges
+
+Potential badges:
+
+```text
+PRIMETIME
+DIVISION
+INTERNATIONAL
+THANKSGIVING
+CHRISTMAS
+SATURDAY
+```
+
+Do not show meaningless badges on normal games.
+
+---
+
+# 10. COMPLETED GAMES
+
+Once games have been played, the same card should gracefully become a result card.
+
+Example:
+
+```text
+FINAL
+
+Buffalo Bills       27
+Miami Dolphins      21
+```
+
+Make the winner slightly more prominent.
+
+Do not dramatically change the card structure.
+
+Scheduled games, live games, and finished games should feel like different states of the SAME component.
+
+Architecture should support:
+
+```text
+SCHEDULED
+LIVE
+FINAL
+POSTPONED
+TBD
+```
+
+even if live scoring is not implemented immediately.
+
+---
+
+# 11. GAME GROUPING
+
+Do not display Week 1 as one giant wall of cards.
+
+Group games by day.
+
+Example:
+
+```text
+WEDNESDAY
+[game]
+
+THURSDAY
+[game]
+
+SUNDAY
+[games...]
+
+MONDAY
+[games...]
+```
+
+For Sunday, optionally sub-group:
+
+```text
+EARLY WINDOW
+
+LATE WINDOW
+
+SUNDAY NIGHT
+```
+
+But only if it improves readability.
+
+Do not over-engineer the grouping.
+
+---
+
+# 12. DESKTOP CARD GRID
+
+Desktop:
+
+Use approximately:
+
+```text
+3 cards per row
+```
+
+depending on available embed width.
+
+Large desktop could support 4 if cards remain readable.
+
+Tablet:
+
+```text
+2 per row
+```
+
+Mobile:
+
+```text
+1 per row
+```
+
+Cards should all have consistent dimensions wherever practical.
+
+---
+
+# 13. TEAM SCHEDULE VIEW
+
+When the user selects:
+
+```text
+By Team
+```
+
+show an entirely different optimized layout.
+
+Header example:
+
+```text
+[TEAM LOGO]
+
+Philadelphia Eagles
+2026 Schedule
+```
+
+Small summary underneath:
+
+```text
+17 Games • Bye Week 8
+9 Home • 8 Away
+```
+
+Then display a vertical schedule.
+
+Example:
+
+```text
+WEEK 1
+
+@ Dallas Cowboys
+
+SUN • SEP 13
+8:20 PM ET • NBC
+
+AWAY
+```
+
+Then:
+
+```text
+WEEK 2
+
+vs New York Giants
+
+SUN • SEP 20
+1:00 PM ET • FOX
+
+HOME
+```
+
+Make HOME / AWAY extremely easy to distinguish without using excessive color.
+
+---
+
+# 14. TEAM SCHEDULE SUMMARY
+
+Above an individual team's schedule, add a premium summary strip.
+
+Example:
+
+```text
+BYE
+Week 8
+
+HOME
+9 Games
+
+AWAY
+8 Games
+
+PRIMETIME
+5 Games
+
+DIVISION
+6 Games
+```
+
+Cards should be compact.
+
+This immediately makes the tool more useful than a plain schedule list.
+
+---
+
+# 15. BYE WEEK TOOL
+
+Add a useful fantasy football section called:
+
+## 2026 NFL Bye Weeks
+
+This can live below the schedule or in Full Season view.
+
+Allow users to select a week.
+
+Example:
+
+```text
+WEEK 8 BYES
+
+[logo] Philadelphia
+[logo] Buffalo
+[logo] Denver
+[logo] Seattle
+```
+
+Also support a complete table:
+
+```text
+Team                 Bye
+Arizona              9
+Atlanta              12
+Baltimore             7
+...
+```
+
+The bye-week feature is VERY important for fantasy football users.
+
+---
+
+# 16. FULL SEASON / SCHEDULE MATRIX
+
+Create a third view:
+
+```text
+Full Season
+```
+
+This should give users a bird's-eye view of the season.
+
+Desktop concept:
+
+```text
+TEAM | W1 | W2 | W3 | W4 | W5 ... W18
+
+BUF    @MIA NE   @KC  BYE ...
+PHI    @DAL NYG  @GB ...
+```
+
+Use:
+
+```text
+vs TEAM
+@ TEAM
+BYE
+```
+
+Do not spell out full team names inside matrix cells.
+
+Examples:
+
+```text
+DAL
+@NYG
+BYE
+```
+
+Make the matrix horizontally scrollable.
+
+Sticky first column:
+
+```text
+TEAM
+```
+
+Sticky header:
+
+```text
+W1 W2 W3...
+```
+
+This is especially valuable for power users.
+
+---
+
+# 17. FANTASY FOOTBALL LAYER
+
+This is StatChasers, so the tool should contain a small fantasy-focused layer.
+
+Add:
+
+## Fantasy Schedule Insights
+
+Initially this can include schedule-derived insights that don't require projections.
+
+Examples:
+
+### Bye Week Conflicts
+
+Identify weeks containing a large number of fantasy-relevant teams on bye.
+
+Example:
+
+```text
+Heavy Bye Week
+
+Week 9
+6 NFL teams are off.
+```
+
+### Short Rest
+
+Flag teams playing unusually short weeks.
+
+Example:
+
+```text
+SHORT WEEK
+Sunday → Thursday
+```
+
+### Long Rest
+
+Example:
+
+```text
+LONG REST
+Thursday → following Sunday
+```
+
+### Consecutive Road Games
+
+Example:
+
+```text
+3 Straight Road Games
+```
+
+### Consecutive Home Games
+
+Example:
+
+```text
+3 Straight Home Games
+```
+
+### Primetime Count
+
+Show how many primetime games a team has.
+
+Do not fabricate fantasy matchup ratings unless we actually have data supporting them.
+
+---
+
+# 18. FUTURE FANTASY ENHANCEMENTS
+
+Structure the tool so we can eventually add:
+
+```text
+Fantasy Strength of Schedule
+QB Matchup Rating
+RB Matchup Rating
+WR Matchup Rating
+TE Matchup Rating
+Defense Matchup Rating
+Fantasy Playoff Schedule
+Weeks 15-17 Schedule Grade
+Opponent Fantasy Points Allowed
+Projected Game Total
+Weather
+Vegas Spread
+```
+
+Do NOT necessarily build all of these now.
+
+Just make the architecture capable of attaching additional metadata to each game.
+
+---
+
+# 19. FANTASY PLAYOFF VIEW
+
+Add a simple useful toggle inside Team View:
+
+```text
+Full Schedule | Fantasy Playoffs
+```
+
+Fantasy Playoffs should highlight:
+
+```text
+Week 15
+Week 16
+Week 17
+```
+
+This makes it extremely easy to inspect late-season schedules.
+
+Do not assign "easy" or "hard" ratings yet unless real strength-of-schedule data exists.
+
+---
+
+# 20. SEARCH
+
+Add a small search input if useful:
+
+```text
+Search teams...
+```
+
+Searching:
+
+```text
+Eagles
+Philadelphia
+PHI
+```
+
+should all resolve to Philadelphia.
+
+Do not create a generic search across every piece of text.
+
+---
+
+# 21. URL STATE
+
+Filters should be represented in the URL where possible.
+
+Examples:
+
+```text
+?scheduleView=week&week=7
+?scheduleView=team&team=PHI
+?scheduleView=season
+```
+
+This ensures browser back/forward works properly and allows users to share filtered views.
+
+Do not reload the page when filters change.
+
+---
+
+# 22. DEFAULT VIEW
+
+When the regular season begins:
+
+Automatically default to the current NFL week.
+
+Before Week 1:
+
+Default to Week 1.
+
+After the regular season:
+
+Default to Week 18 unless postseason functionality is later added.
+
+Do not calculate the current week merely by dividing days since the season started.
+
+Use the actual schedule dates.
+
+---
+
+# 23. SPECIAL GAMES
+
+Recognize and label special schedule situations when the data supports them:
+
+```text
+INTERNATIONAL
+THANKSGIVING
+CHRISTMAS
+SATURDAY
+SUNDAY NIGHT
+MONDAY NIGHT
+THURSDAY NIGHT
+```
+
+International games should optionally display the city/country.
+
+Example:
+
+```text
+INTERNATIONAL
+Melbourne, Australia
+```
+
+Keep special treatment subtle and premium.
+
+Do not turn these cards into rainbow-colored promotional graphics.
+
+---
+
+# 24. STATChasers DESIGN SYSTEM
+
+Overall visual style:
+
+* Premium
+* Modern
+* Sports analytics
+* Clean
+* White-first
+* Minimal
+* Strong typography
+* Lots of breathing room
+
+Primary colors:
+
+```css
+--sc-navy: #0f172a;
+--sc-gold: #caa14a;
+--sc-gold-light: #f4d27a;
+--sc-white: #ffffff;
+--sc-border: #e2e8f0;
+--sc-muted: #64748b;
+--sc-soft: #f8fafc;
+```
+
+Gold gradient:
+
+```css
+linear-gradient(90deg, #caa14a, #f4d27a)
+```
+
+Use gold as an ACCENT.
+
+Do not make entire cards gold.
+
+---
+
+# 25. BACKGROUNDS
+
+The primary page background should be:
+
+```css
+#ffffff
+```
+
+Do not alternate giant sections between slightly gray/tinted backgrounds.
+
+Sections should primarily be separated using:
+
+* spacing
+* typography
+* thin borders
+* cards
+* small dividers
+
+not large background-color changes.
+
+---
+
+# 26. TYPOGRAPHY
+
+Main H1:
+
+Desktop approximately:
+
+```text
+38-44px
+```
+
+Mobile:
+
+```text
+30-34px
+```
+
+Use:
+
+```text
+font-weight: 800-900
+```
+
+Headings:
+
+```text
+#0f172a
+```
+
+Body text:
+
+```text
+#334155
+```
+
+Secondary metadata:
+
+```text
+#64748b
+```
+
+Avoid blue text unless it represents an actual link.
+
+---
+
+# 27. STATChasers HEADING STYLE
+
+For major section headings, use the StatChasers gold underline treatment.
+
+Example:
+
+```text
+2026 NFL Schedule
+────────
+```
+
+Underline:
+
+```css
+width: 70px;
+height: 4px;
+border-radius: 999px;
+background: linear-gradient(90deg, #caa14a, #f4d27a);
+```
+
+Do not underline every heading.
+
+Only major sections.
+
+---
+
+# 28. CARDS
+
+Cards should use:
+
+```css
+background: #ffffff;
+border: 1px solid #e2e8f0;
+border-radius: 14px;
+```
+
+Very subtle shadow:
+
+```css
+box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+```
+
+Hover:
+
+* slightly stronger border
+* slight shadow
+* possibly translateY(-1px)
+
+No dramatic animations.
+
+---
+
+# 29. SELECTED STATES
+
+Week/team/filter selections should use:
+
+* dark navy
+* gold border
+* gold accent
+* white where necessary
+
+Avoid using generic bright blue UI controls.
+
+Selected Week example:
+
+```text
+WEEK 7
+```
+
+with:
+
+* navy background
+* gold top/bottom accent OR gold border
+* white text
+
+---
+
+# 30. TEAM COLORS
+
+Team colors may appear in VERY SMALL accents.
+
+Examples:
+
+* tiny edge line
+* logo backdrop
+* hover highlight
+
+Do NOT allow team colors to override the StatChasers visual identity.
+
+The tool should always still look like StatChasers.
+
+---
+
+# 31. MOBILE DESIGN
+
+Mobile is extremely important.
+
+At widths under approximately 768px:
+
+* Single-column game cards
+* Compact controls
+* Horizontal scrolling week selector
+* Large touch targets
+* No horizontal page overflow
+* Team matrix may horizontally scroll inside its own container
+* Keep logos appropriately sized
+* Don't make cards excessively tall
+
+Page padding:
+
+Approximately:
+
+```css
+padding-left: 16px;
+padding-right: 16px;
+```
+
+Do not leave giant desktop-style side margins on phones.
+
+---
+
+# 32. LOADING STATE
+
+Create professional skeleton loading states.
+
+Do NOT display:
+
+```text
+Loading...
+```
+
+by itself on a blank page.
+
+Skeletons should approximately match the final schedule cards.
+
+---
+
+# 33. ERROR STATE
+
+If schedule data fails:
+
+Display a clean card:
+
+```text
+Unable to load the 2026 NFL schedule.
+
+Please try again.
+```
+
+Provide:
+
+```text
+Retry
+```
+
+Do not expose raw API errors to users.
+
+Log detailed errors server-side or to the developer console.
+
+---
+
+# 34. DATA CACHING
+
+Do not fetch the full schedule every time React re-renders.
+
+Implement proper:
+
+* caching
+* memoization where useful
+* normalized data
+* request deduplication
+
+A backend endpoint could expose:
+
+```text
+/api/nfl/schedule/2026
+```
+
+And optional filtered endpoints:
+
+```text
+/api/nfl/schedule/2026/week/1
+/api/nfl/schedule/2026/team/PHI
+```
+
+However, if the entire season payload is small enough, one cached season endpoint is preferable and filtering can happen client-side.
+
+---
+
+# 35. PERFORMANCE
+
+Target:
+
+* Very fast initial render
+* No unnecessary API requests
+* No giant JS packages
+* Lazy load anything not needed above the fold
+* Optimize logo images
+* Avoid layout shift
+* Avoid unnecessary animations
+* Smooth filter changes
+
+---
+
+# 36. ACCESSIBILITY
+
+Include:
+
+* semantic buttons
+* visible focus states
+* labels for dropdowns
+* alt text for team logos
+* keyboard navigation
+* adequate contrast
+* aria-selected where appropriate
+* aria-live only where necessary
+
+Do not make clickable divs when a button should be used.
+
+---
+
+# 37. EMPTY STATES
+
+Filters should never cause a broken-looking page.
+
+If no games match:
+
+```text
+No games match these filters.
+```
+
+Provide:
+
+```text
+Clear Filters
+```
+
+---
+
+# 38. IMPORTANT DATA RULES
+
+Never:
+
+* invent a game
+* invent a kickoff time
+* invent a TV network
+* assume TBD games have final times
+* display stale team names
+* incorrectly treat neutral-site games as normal home games
+* call international games home games without accounting for neutral-site designation
+* assume every NFL week runs Thursday-Monday
+
+The 2026 schedule contains unusual dates, international games, holidays, and flexible scheduling.
+
+The data model needs to handle them.
+
+---
+
+# 39. PREMIUM DETAILS
+
+Add subtle quality touches:
+
+### Current Week
+
+Badge:
+
+```text
+CURRENT WEEK
+```
+
+### Next Game
+
+When viewing a team:
+
+```text
+NEXT GAME
+```
+
+### Bye
+
+Instead of an empty game card:
+
+```text
+WEEK 8
+
+BYE WEEK
+
+No game scheduled
+```
+
+### Home/Away
+
+Use:
+
+```text
+vs
+@
+```
+
+rather than repeatedly spelling out HOME and AWAY.
+
+### Records
+
+Once standings become available, architecture should allow:
+
+```text
+PHI
+8-2
+```
+
+without redesigning the component.
+
+---
+
+# 40. OPTIONAL "QUICK FIND"
+
+At the top add:
+
+```text
+Find Your Team
+```
+
+with the 32 team logos in a compact expandable picker.
+
+Clicking a team immediately opens Team Schedule View.
+
+Keep this secondary to the main controls.
+
+---
+
+# 41. DO NOT DO THESE THINGS
+
+Do NOT:
+
+* create giant gradient backgrounds
+* create excessive rounded floating containers
+* use glassmorphism
+* use neon colors
+* use huge shadows
+* use blue as the primary accent
+* alternate every section between white and light gray
+* create massive hero areas
+* waste vertical space
+* use tiny fonts
+* show raw database fields
+* cram every possible stat into the game cards
+* make the UI look like ESPN
+* make the UI look like NFL.com
+* make the UI look like a generic Bootstrap dashboard
+
+This needs to look like a premium StatChasers analytics product.
+
+---
+
+# 42. INITIAL RELEASE PRIORITIES
+
+Build in this order:
+
+### Phase 1
+
+Fully functional:
+
+1. Load 2026 schedule data
+2. Weekly schedule
+3. Week selector
+4. Team filter
+5. Game cards
+6. Team schedule view
+7. Bye weeks
+8. Full-season matrix
+9. Mobile responsiveness
+10. URL state
+
+### Phase 2
+
+Add:
+
+1. Schedule insights
+2. Fantasy playoff view
+3. Special game classifications
+4. Short-rest identification
+5. Consecutive road/home game detection
+6. Primetime counts
+
+### Phase 3
+
+Prepare integration hooks for:
+
+1. Fantasy strength of schedule
+2. Player projections
+3. Vegas data
+4. Weather
+5. Live scores
+6. Fantasy matchup ratings
+
+Do NOT hold Phase 1 hostage waiting for Phase 3 data.
+
+---
+
+# 43. FINAL PAGE FLOW
+
+The finished page should roughly flow:
+
+```text
+2026 NFL Schedule
+Short description
+Gold underline
+
+[By Week] [By Team] [Full Season]
+
+[Week selector / Team selector / filters]
+
+--------------------------------
+
+WEEK 1
+September XX – XX
+
+THURSDAY
+[game cards]
+
+SUNDAY
+[game cards]
+
+MONDAY
+[game cards]
+
+--------------------------------
+
+Fantasy Schedule Insights
+
+[Bye weeks]
+[short rest]
+[primetime information]
+
+--------------------------------
+
+2026 NFL Bye Weeks
+
+[bye week tool]
+```
+
+If the user changes to Team View, replace the main weekly section with the team schedule.
+
+If Full Season is selected, replace it with the schedule matrix.
+
+Do not render all three giant views simultaneously.
+
+---
+
+# 44. COMPONENT BEHAVIOR
+
+Make all views derive from the same normalized game dataset.
+
+Do NOT maintain separate manually-entered schedules for:
+
+* Weekly View
+* Team View
+* Full Season View
+* Bye Weeks
+
+There should be ONE schedule dataset.
+
+Every interface should derive from that dataset.
+
+Example utility functions:
+
+```js
+getGamesByWeek()
+getGamesByTeam()
+getTeamByeWeek()
+getTeamSchedule()
+getPrimetimeGames()
+getDivisionGames()
+getGamesByDate()
+getCurrentNFLWeek()
+getTeamRestDays()
+getConsecutiveRoadGames()
+```
+
+Keep business logic outside presentation components wherever possible.
+
+---
+
+# 45. TESTING
+
+Before considering this finished, verify:
+
+* All 32 teams exist
+* Every team has 17 regular-season games
+* Every team has one bye week
+* All 18 weeks work
+* Home/away assignments are accurate
+* Team filter works
+* Week filter works
+* Primetime filter works
+* Switching views does not refetch unnecessarily
+* Browser back works
+* Refreshing a filtered URL preserves the filter
+* Mobile has no horizontal page overflow
+* Matrix horizontal scrolling works
+* TBD kickoff times render correctly
+* Neutral/international games don't break the UI
+* Team logos don't distort
+* No console errors
+
+Create validation functions to flag obviously invalid schedule data.
+
+For example:
+
+```js
+if (regularSeasonGamesForTeam !== 17) {
+  console.warn(...)
+}
+```
+
+---
+
+# 46. IMPORTANT
+
+Before writing the final implementation, inspect the existing StatChasers application's styling and reusable components.
+
+Reuse existing:
+
+* fonts
+* containers
+* spacing
+* button styles
+* team logo logic
+* breakpoints
+* API patterns
+
+where appropriate.
+
+Do not unnecessarily rewrite working global infrastructure.
+
+However, the schedule itself should be a new modular feature.
+
+Build the functional data layer first, then make the interface match the premium StatChasers design described above.
+
+The final result should feel like a tool people would bookmark and return to throughout the entire NFL season, not simply a page showing a list of games.

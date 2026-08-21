@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: nfl
+    description: NFL schedule operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /nfl/schedule/{season}:
+    get:
+      operationId: getNflSchedule
+      tags: [nfl]
+      summary: Get a normalized NFL regular-season schedule
+      parameters:
+        - name: season
+          in: path
+          required: true
+          schema:
+            type: number
+            minimum: 2026
+            maximum: 2100
+      responses:
+        "200":
+          description: Normalized schedule with centralized team metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NflScheduleResponse"
+        "502":
+          description: Upstream schedule unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +61,93 @@ components:
           type: string
       required:
         - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    NflTeam:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        shortName:
+          type: string
+        city:
+          type: string
+        conference:
+          type: string
+        division:
+          type: string
+        primaryColor:
+          type: string
+        secondaryColor:
+          type: string
+        logo:
+          type: string
+      required: [code, name, shortName, city, conference, division, primaryColor, secondaryColor, logo]
+    NflGame:
+      type: object
+      properties:
+        id:
+          type: string
+        season:
+          type: number
+        week:
+          type: number
+        date:
+          type: ["string", "null"]
+        day:
+          type: ["string", "null"]
+        time:
+          type: ["string", "null"]
+        awayTeam:
+          type: string
+        homeTeam:
+          type: string
+        awayScore:
+          type: ["number", "null"]
+        homeScore:
+          type: ["number", "null"]
+        status:
+          type: string
+        network:
+          type: ["string", "null"]
+        stadium:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        international:
+          type: boolean
+        neutralSite:
+          type: boolean
+        primetime:
+          type: boolean
+        divisionGame:
+          type: boolean
+        holiday:
+          type: ["string", "null"]
+      required: [id, season, week, date, day, time, awayTeam, homeTeam, awayScore, homeScore, status, network, stadium, location, international, neutralSite, primetime, divisionGame, holiday]
+    NflScheduleResponse:
+      type: object
+      properties:
+        season:
+          type: number
+        source:
+          type: string
+        fetchedAt:
+          type: string
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/NflTeam"
+        games:
+          type: array
+          items:
+            $ref: "#/components/schemas/NflGame"
+      required: [season, source, fetchedAt, teams, games]
 

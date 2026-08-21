@@ -5,25 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
-
-export interface ErrorResponse {
-  error: string;
-}
-
-export interface NflTeam {
-  code: string;
-  name: string;
-  shortName: string;
-  city: string;
-  conference: string;
-  division: string;
-  primaryColor: string;
-  secondaryColor: string;
-  logo: string;
-}
 
 export interface NflGame {
   id: string;
@@ -55,12 +36,3 @@ export interface NflGame {
   /** @nullable */
   holiday: string | null;
 }
-
-export interface NflScheduleResponse {
-  season: number;
-  source: string;
-  fetchedAt: string;
-  teams: NflTeam[];
-  games: NflGame[];
-}
-

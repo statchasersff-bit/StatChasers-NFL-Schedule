@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "StatChasers NFL Schedule"
+description = "A premium interactive 2026 NFL schedule tool for fantasy football players, with weekly browsing, team schedules, bye weeks, schedule insights, and a full-season matrix."
+version = "1.0.0"
+id = "artifacts/nfl-schedule"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20627
+
+[services.development]
+run = "pnpm --filter @workspace/nfl-schedule run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/nfl-schedule", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/nfl-schedule/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20627"
+BASE_PATH = "/"
