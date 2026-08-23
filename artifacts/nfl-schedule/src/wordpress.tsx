@@ -49,6 +49,10 @@ async function boot() {
   const host = document.querySelector<HTMLElement>(config.mount);
   if (!host) return;
 
+  // Tells the page's inline boot script that the bundle arrived, so it stops counting down to
+  // restoring the static table. Set before any await: from here on this code owns the display.
+  document.documentElement.classList.add('sc-nfl-booted');
+
   if (config.apiBase) setBaseUrl(config.apiBase);
 
   const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' });

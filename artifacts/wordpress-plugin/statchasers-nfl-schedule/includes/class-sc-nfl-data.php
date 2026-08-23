@@ -30,6 +30,11 @@ class SC_NFL_Data {
 	const ESPN_FULL_TTL  = 21600; // 6 hours: catches flexed kickoffs and late TV assignments.
 	const ESPN_LIVE_TTL  = 30;
 	const ESPN_IDLE_TTL  = 900;   // 15 minutes.
+	/** Weeks fetched per invocation. A full sweep is 18 sequential requests; doing them all in one
+	 *  request blows through a typical 30s max_execution_time, so the sweep is resumable instead. */
+	const ESPN_WEEKS_PER_RUN_REST = 4;
+	const ESPN_WEEKS_PER_RUN_CRON = 18;
+	const ESPN_TIMEOUT   = 8;
 	const LOCK_TTL       = 120;
 	const CSV_URL        = 'https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv';
 	const ESPN_URL       = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
@@ -117,12 +122,13 @@ class SC_NFL_Data {
 		}
 
 		$espn = self::get_espn_store( $season );
-		$age  = time() - (int) $espn['updated_at'];
-		$ttl  = self::has_live_game( $espn ) ? self::ESPN_LIVE_TTL : self::ESPN_IDLE_TTL;
+		$age     = time() - (int) $espn['updated_at'];
+		$ttl     = self::has_live_game( $espn ) ? self::ESPN_LIVE_TTL : self::ESPN_IDLE_TTL;
+		$resuming = ! empty( $espn['pending'] );
 
-		if ( $age > $ttl ) {
+		if ( $resuming || $age > $ttl ) {
 			if ( $allow_network ) {
-				$espn = self::refresh_espn( $season, $base, $espn );
+				$espn = self::refresh_espn( $season, $base, $espn, self::ESPN_WEEKS_PER_RUN_REST );
 			} else {
 				self::schedule_soon();
 			}
@@ -146,7 +152,7 @@ class SC_NFL_Data {
 		if ( empty( $base['rows'] ) ) {
 			return;
 		}
-		self::refresh_espn( $season, $base, self::get_espn_store( $season ) );
+		self::refresh_espn( $season, $base, self::get_espn_store( $season ), self::ESPN_WEEKS_PER_RUN_CRON );
 	}
 
 	/**
@@ -306,6 +312,7 @@ class SC_NFL_Data {
 				'games'      => array(),
 				'updated_at' => 0,
 				'full_at'    => 0,
+				'pending'    => array(),
 			);
 		}
 		$espn['updated_at'] = isset( $espn['updated_at'] ) ? (int) $espn['updated_at'] : 0;
@@ -323,12 +330,19 @@ class SC_NFL_Data {
 	 * @param array $espn   Stored ESPN layer.
 	 * @return array Updated ESPN layer.
 	 */
-	private static function refresh_espn( $season, $base, $espn ) {
-		$now  = time();
-		$full = empty( $espn['games'] ) || ( $now - (int) $espn['full_at'] ) > self::ESPN_FULL_TTL;
+	private static function refresh_espn( $season, $base, $espn, $max_weeks = self::ESPN_WEEKS_PER_RUN_CRON ) {
+		$now     = time();
+		$pending = ( isset( $espn['pending'] ) && is_array( $espn['pending'] ) ) ? array_values( $espn['pending'] ) : array();
+		$full    = empty( $espn['games'] ) || ( $now - (int) $espn['full_at'] ) > self::ESPN_FULL_TTL;
 
-		if ( $full ) {
-			$weeks = range( 1, 18 );
+		if ( empty( $pending ) && $full ) {
+			$pending = range( 1, 18 );
+		}
+
+		if ( ! empty( $pending ) ) {
+			// Resume the sweep a few weeks at a time. Progress is written after every week, so a
+			// request killed by max_execution_time still leaves the work it completed behind.
+			$weeks = array_slice( $pending, 0, max( 1, (int) $max_weeks ) );
 		} else {
 			$weeks = self::active_weeks( $base['rows'] );
 			if ( empty( $weeks ) ) {
@@ -354,40 +368,47 @@ class SC_NFL_Data {
 			$response = wp_remote_get(
 				$url,
 				array(
-					'timeout'    => 10,
+					'timeout'    => self::ESPN_TIMEOUT,
 					'headers'    => array( 'accept' => 'application/json' ),
 					'user-agent' => 'StatChasers NFL Schedule/' . SC_NFL_VERSION . '; ' . home_url( '/' ),
 				)
 			);
 
-			if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
-				continue;
-			}
+			// Drop the week from the queue whether or not it succeeded: a week ESPN refuses must not
+			// wedge the sweep forever. The next full sweep picks it up again.
+			$pending = array_values( array_diff( $pending, array( (int) $week ) ) );
 
-			$payload = json_decode( wp_remote_retrieve_body( $response ), true );
-			if ( ! is_array( $payload ) || empty( $payload['events'] ) || ! is_array( $payload['events'] ) ) {
-				continue;
-			}
-
-			foreach ( $payload['events'] as $event ) {
-				$parsed = self::read_event( $event );
-				if ( null !== $parsed ) {
-					$espn['games'][ $parsed['id'] ] = $parsed;
+			$ok = ! is_wp_error( $response ) && 200 === (int) wp_remote_retrieve_response_code( $response );
+			if ( $ok ) {
+				$payload = json_decode( wp_remote_retrieve_body( $response ), true );
+				if ( is_array( $payload ) && ! empty( $payload['events'] ) && is_array( $payload['events'] ) ) {
+					foreach ( $payload['events'] as $event ) {
+						$parsed = self::read_event( $event );
+						if ( null !== $parsed ) {
+							$espn['games'][ $parsed['id'] ] = $parsed;
+						}
+					}
+					++$fetched;
 				}
 			}
-			++$fetched;
+
+			// Persist immediately, so a timeout mid-sweep costs one week rather than all of them.
+			$espn['pending']    = $pending;
+			$espn['updated_at'] = time();
+			update_option( self::espn_key( $season ), $espn, false );
 		}
 
-		// A total failure leaves the previous data in place instead of blanking TV and scores.
-		if ( 0 === $fetched ) {
-			return $espn;
-		}
-
-		$espn['updated_at'] = $now;
-		if ( $full ) {
-			$espn['full_at'] = $now;
+		$espn['pending']    = $pending;
+		$espn['updated_at'] = time();
+		if ( empty( $pending ) && $fetched > 0 ) {
+			$espn['full_at'] = time();
 		}
 		update_option( self::espn_key( $season ), $espn, false );
+
+		// More weeks to go: have cron continue rather than making the next visitor wait.
+		if ( ! empty( $pending ) ) {
+			self::schedule_soon();
+		}
 		return $espn;
 	}
 

@@ -126,7 +126,7 @@ function Header({ state, setState, onExport }: { state: ReturnType<typeof readSt
   const setView = (view: ViewMode) => setState({ view });
   return (
     <header className="border-b border-border bg-card">
-      <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-[2px] py-4">
+      <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-[2px] py-4">
         <nav className="app-nav flex min-w-0 items-center gap-1" aria-label="Primary navigation">
           {(['week', 'team', 'matrix'] as ViewMode[]).map((item) => (
             <button
@@ -782,7 +782,7 @@ function SchedulePage() {
   return (
     <div className="app-shell">
       <Header state={state} setState={setState} onExport={handleExport} />
-      <main className="mx-auto max-w-[1480px] px-[2px] pb-12 pt-6">
+      <main className="mx-auto max-w-[1280px] px-[2px] pb-12 pt-6">
         <div className={`${state.view === 'week' ? 'dashboard-grid' : ''} fade-in`}>
           <section className="min-w-0">{content}</section>
           {!isLoading && !isError && data && teams.length > 0 && state.view === 'week' && <div className="fade-in-delay space-y-3"><FantasySnapshot games={games} teams={teams} week={resolvedState.week} /><ByeCard teams={teams} games={games} week={resolvedState.week} setState={setState} /><TravelCard games={games} teams={teams} week={resolvedState.week} /><DivisionCard games={games} teams={teams} week={resolvedState.week} /></div>}

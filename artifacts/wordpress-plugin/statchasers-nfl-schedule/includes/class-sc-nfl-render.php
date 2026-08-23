@@ -26,8 +26,47 @@ class SC_NFL_Render {
 	 *
 	 * @return void
 	 */
+	/** Guards against enqueueing twice when both the early hook and the shortcode fire. */
+	private static $enqueued = false;
+
 	public static function init() {
 		add_shortcode( 'nfl_schedule', array( __CLASS__, 'shortcode' ) );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'maybe_enqueue_early' ) );
+	}
+
+	/**
+	 * Enqueue before wp_head when the shortcode is visible in the post content.
+	 *
+	 * Enqueueing from inside the shortcode happens during the_content — after wp_head has already
+	 * printed — so WordPress defers those styles to the footer and the static table paints unstyled
+	 * first. Detecting the shortcode here puts the CSS in the head where it belongs. Page builders
+	 * that keep content elsewhere simply fall back to the shortcode-time enqueue.
+	 *
+	 * @return void
+	 */
+	public static function maybe_enqueue_early() {
+		if ( ! is_singular() ) {
+			return;
+		}
+		$post = get_post();
+		if ( ! $post || ! has_shortcode( $post->post_content, 'nfl_schedule' ) ) {
+			return;
+		}
+
+		$season  = SC_NFL_DEFAULT_SEASON;
+		$use_app = true;
+		if ( preg_match( '/\[nfl_schedule([^\]]*)\]/', $post->post_content, $match ) ) {
+			$atts = shortcode_parse_atts( $match[1] );
+			if ( is_array( $atts ) ) {
+				if ( isset( $atts['season'] ) ) {
+					$season = (int) $atts['season'];
+				}
+				if ( isset( $atts['app'] ) && 'no' === strtolower( $atts['app'] ) ) {
+					$use_app = false;
+				}
+			}
+		}
+		self::enqueue( $season, $use_app );
 	}
 
 	/**
@@ -38,7 +77,7 @@ class SC_NFL_Render {
 	 *   heading  Heading tag for week titles: h2 (default), h3 or h4. The page title should own h1.
 	 *   jsonld   upcoming (default) | all | none.
 	 *   app      yes (default) | no. "no" ships the static table only, with no React bundle.
-	 *   width    content (default) | wide (breaks out to 1480px) | full (edge to edge).
+	 *   width    content (default) | wide (breaks out to 1280px, on viewports over 1400px only) | full (edge to edge).
 	 *
 	 * @param array|string $atts Shortcode attributes.
 	 * @return string
@@ -74,6 +113,12 @@ class SC_NFL_Render {
 
 		ob_start();
 		?>
+		<?php if ( $use_app ) : ?>
+			<?php // Runs while the browser is still parsing, so the static table below is never painted
+			// for a visitor who will get the app. The timeout restores it if the bundle never boots. ?>
+			<script>(function(){var r=document.documentElement;r.classList.add('sc-nfl-js');
+			setTimeout(function(){if(!r.classList.contains('sc-nfl-booted')){r.classList.remove('sc-nfl-js');}},8000);})();</script>
+		<?php endif; ?>
 		<div class="sc-nfl-embed sc-nfl-width-<?php echo esc_attr( $width ); ?>" data-sc-nfl-season="<?php echo esc_attr( (string) $season ); ?>">
 			<div class="sc-nfl-static" data-sc-nfl-static>
 				<?php echo self::render_week_nav( $weeks ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -103,6 +148,11 @@ class SC_NFL_Render {
 	 * @return void
 	 */
 	private static function enqueue( $season, $use_app ) {
+		if ( self::$enqueued ) {
+			return;
+		}
+		self::$enqueued = true;
+
 		wp_enqueue_style(
 			'sc-nfl-embed',
 			SC_NFL_URL . 'assets/sc-nfl-embed.css',
@@ -151,6 +201,20 @@ class SC_NFL_Render {
 		}
 
 		wp_enqueue_script( 'sc-nfl-app', SC_NFL_URL . 'assets/sc-nfl-schedule.js', array(), SC_NFL_VERSION, true );
+
+		// The shadow stylesheet is fetched by the bundle rather than linked, so warm it in parallel
+		// with the script instead of waiting for the script to start the request.
+		if ( file_exists( $style ) ) {
+			add_action(
+				'wp_head',
+				static function () {
+					printf(
+						'<link rel="preload" as="style" href="%s" />' . "\n",
+						esc_url( SC_NFL_URL . 'assets/sc-nfl-schedule.css?v=' . rawurlencode( SC_NFL_VERSION ) )
+					);
+				}
+			);
+		}
 
 		$config = array(
 			'apiBase'  => esc_url_raw( rest_url( SC_NFL_Rest::NAMESPACE_V1 ) ),

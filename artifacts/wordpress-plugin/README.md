@@ -57,7 +57,7 @@ Leave the page's own `<h1>` as the title — week headings are `<h2>` so the out
 | `heading` | `h2` | `h2`, `h3` or `h4` for week titles. |
 | `jsonld` | `upcoming` | `upcoming` (from today, max 64 events), `all` (all 272, ~100 KB), or `none`. |
 | `app` | `yes` | `no` renders the static table only and skips the React bundle entirely. |
-| `width` | `content` | `wide` breaks out of the theme's column up to 1480px; `full` goes edge to edge. Both subtract the measured scrollbar width so the page never scrolls sideways. |
+| `width` | `content` | `wide` breaks out of the theme's column up to 1280px, and only on viewports wider than 1400px — below that (including when the page is zoomed in) it stays in the column so it never looks wider than the rest of the page; `full` goes edge to edge at every width. Both subtract the measured scrollbar width so the page never scrolls sideways. |
 
 ## How the data works
 
@@ -73,6 +73,13 @@ Two sources, cached separately because they move at different speeds:
 Both are stored in **options**, not transients: an object cache can evict a transient at any
 moment, and an evicted schedule means a blank page for whoever asks next. Options give a
 last-known-good copy that survives, with freshness decided from stored timestamps.
+
+The ESPN sweep is **resumable**: 18 sequential requests in one PHP process would exceed a typical
+30-second `max_execution_time`, and the original implementation saved nothing until all 18 finished
+— so on a real host it was killed partway, persisted nothing, and retried forever, meaning TV data
+never appeared at all. It now fetches four weeks per request, writes after every single week, and
+continues where it left off. Full coverage arrives over about five requests instead of one that
+cannot finish.
 
 **Page rendering never makes a blocking HTTP request.** A WP-Cron job (`sc_nfl_refresh`, every five
 minutes) does the fetching; the shortcode only reads stored data. Verified: zero HTTP calls during a
@@ -94,11 +101,19 @@ TypeScript client needs nothing but a base URL to point here instead.
 ## How the app and the static table coexist
 
 This is progressive enhancement, not React hydration. The plugin renders plain HTML; the bundle
-mounts a separate React tree into `#sc-nfl-root`. Once the app has data it adds `sc-nfl-ready` to
-`<html>`, and CSS swaps the static table for the live one — so a visitor never sees the schedule
-replaced by a loading skeleton. If the script fails or JS is off, the static table simply stays.
-That is also what a crawler sees, and the two versions carry the same content, so there is no
-cloaking risk.
+mounts a separate React tree into `#sc-nfl-root`.
+
+An inline script at the top of the embed adds `sc-nfl-js` to `<html>` **while the browser is still
+parsing**, before the static table is ever painted. So a visitor with JavaScript goes straight from
+the page's own layout to the app's loading skeleton and then the schedule — they never see the plain
+table appear and get restyled.
+
+The trade is that hiding the table up front could blank the page if the bundle never arrives, so the
+same inline script starts an 8-second timer and removes the class again unless the bundle has set
+`sc-nfl-booted`. Verified by pointing the page at a bundle that 404s: the static table comes back.
+
+Crawlers and anyone without JavaScript never set the class at all, so they get the full table. Both
+versions carry the same content — no cloaking risk.
 
 ### Style isolation — the app renders in a shadow root
 

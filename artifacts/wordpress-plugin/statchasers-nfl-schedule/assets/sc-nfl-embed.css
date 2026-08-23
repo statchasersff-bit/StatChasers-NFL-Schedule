@@ -31,12 +31,53 @@
 	padding-right: clamp(12px, 2.5vw, 40px);
 }
 
-.sc-nfl-width-wide {
-	max-width: min(1480px, calc(100vw - var(--sc-scrollbar, 0px)));
+/* `wide` only breaks out when the viewport is genuinely wider than the board plus its gutters.
+ *
+ * Browser zoom shrinks the viewport in CSS pixels: a 1920px screen at 150% is a 1280px viewport.
+ * Without this guard the breakout still claimed the whole viewport at that point, so the embed ran
+ * edge to edge while the theme's column kept its margins — the schedule looked wider than every
+ * other block on the page. Below the threshold the embed stays in the normal flow and inherits the
+ * theme's column, which is exactly as wide as the rest of the page at any zoom level.
+ *
+ * 1400px = the 1280px cap + ~40px of gutter each side + room for a classic scrollbar, so the first
+ * width that does break out already has real margins rather than touching the viewport edge. */
+@media (max-width: 1399px) {
+	.sc-nfl-width-wide {
+		position: static;
+		left: auto;
+		transform: none;
+		width: auto;
+		max-width: 100%;
+		padding-left: 0;
+		padding-right: 0;
+	}
 }
 
-/* App.tsx adds `sc-nfl-ready` to <html> only once the schedule data has arrived, so the static
-   table is never replaced by a loading skeleton. */
+@media (min-width: 1400px) {
+	.sc-nfl-width-wide {
+		max-width: min(1280px, calc(100vw - var(--sc-scrollbar, 0px)));
+	}
+}
+
+/* Handing over to the app.
+ *
+ * `sc-nfl-js` is set by an inline script that runs before the static table is painted, so a visitor
+ * with JavaScript goes straight to the app's own loading skeleton rather than seeing the plain
+ * table and then watching it get replaced. The min-height reserves roughly the board's height so
+ * the page does not jump when the app fills in.
+ *
+ * If the bundle never boots, that same inline script removes `sc-nfl-js` again after a few seconds
+ * and the static table comes back — so a blocked or failed script degrades instead of blanking.
+ * Crawlers and anyone without JavaScript never set the class at all. */
+.sc-nfl-js .sc-nfl-static {
+	display: none;
+}
+
+.sc-nfl-js .sc-nfl-root {
+	display: block;
+	min-height: 70vh;
+}
+
 .sc-nfl-ready .sc-nfl-static {
 	display: none;
 }

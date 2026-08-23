@@ -3,7 +3,7 @@
  * Plugin Name:       StatChasers NFL Schedule
  * Plugin URI:        https://statchasers.com/nfl/nfl-schedule/
  * Description:       Renders the NFL schedule as crawlable server-side HTML with SportsEvent structured data, and progressively enhances it with the StatChasers schedule app.
- * Version:           1.0.0+20260823051222
+ * Version:           1.0.0+20260823170343
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            StatChasers
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SC_NFL_VERSION', '1.0.0+20260823051222' );
+define( 'SC_NFL_VERSION', '1.0.0+20260823170343' );
 define( 'SC_NFL_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SC_NFL_URL', plugin_dir_url( __FILE__ ) );
 

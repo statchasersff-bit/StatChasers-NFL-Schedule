@@ -42,3 +42,17 @@ mtime_ms = 1787462372369
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/58aaada6-62dd-49be-b76c-0b914f270bfc/e82651a6-61a1-4e7d-926c-4e64d87a0ae5"
 storage_version_token = "1787462377157222"
 content_type = "image/png"
+
+[[outputs]]
+id = "qhOiK9vv_v0SHF2aMjkCb"
+uri = "file://attached_assets/leaguesafe-fields-of-one-60-reference.png"
+type = "image"
+title = "LeagueSafe Fields of One 6.0 Reference"
+description = "Saved screenshot reference from the LeagueSafe league join page."
+logical_id = "aabb79db-f723-4d31-82b5-f5f46f1236c8"
+content_hash = "sha256:0cfd5bb74fb41a63e1ce05d8b7306cf9284a2eca149711fd5d0c38d304f548a2"
+size = 140412
+mtime_ms = 1787508077807
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/aabb79db-f723-4d31-82b5-f5f46f1236c8/f787abf6-b246-4630-a081-a415fca45cdd"
+storage_version_token = "1787508082749087"
+content_type = "image/png"
