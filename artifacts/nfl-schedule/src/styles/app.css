@@ -1,0 +1,209 @@
+/* App-owned styles shared by the standalone build and the WordPress bundle.
+   Entry-specific concerns (Tailwind preflight, global element resets) live in the entry files. */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --font-sans: var(--app-font-sans);
+  --font-mono: var(--app-font-mono);
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
+  --radius-lg: var(--radius);
+}
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 220 47% 16%;
+  --border: 218 20% 83%;
+  --input: 218 20% 83%;
+  --ring: 43 83% 49%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 47% 16%;
+  --card-border: 218 20% 83%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 47% 16%;
+  --primary: 220 56% 19%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 218 22% 94%;
+  --secondary-foreground: 220 47% 16%;
+  --muted: 218 22% 96%;
+  --muted-foreground: 218 14% 45%;
+  --accent: 43 83% 49%;
+  --accent-foreground: 220 56% 15%;
+  --destructive: 2 66% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --app-font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --app-font-mono: 'Space Grotesk', ui-monospace, monospace;
+  --radius: 0.45rem;
+  --shadow-sm: 0 1px 2px rgba(22, 35, 58, 0.05);
+  --shadow-md: 0 12px 30px rgba(22, 35, 58, 0.08);
+}
+
+.dark {
+  --background: 220 47% 10%;
+  --foreground: 42 36% 96%;
+  --border: 220 27% 24%;
+  --input: 220 27% 24%;
+  --ring: 43 83% 49%;
+  --card: 220 43% 14%;
+  --card-foreground: 42 36% 96%;
+  --card-border: 220 27% 24%;
+  --popover: 220 43% 14%;
+  --popover-foreground: 42 36% 96%;
+  --primary: 43 83% 49%;
+  --primary-foreground: 220 56% 15%;
+  --secondary: 220 31% 20%;
+  --secondary-foreground: 42 36% 96%;
+  --muted: 220 31% 19%;
+  --muted-foreground: 218 15% 69%;
+  --accent: 43 83% 49%;
+  --accent-foreground: 220 56% 15%;
+  --destructive: 2 66% 56%;
+  --destructive-foreground: 0 0% 100%;
+}
+
+
+@layer utilities {
+  .font-display { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  .scrollbar-thin::-webkit-scrollbar { height: 5px; width: 5px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 4px; }
+}
+
+.app-shell { min-height: 100dvh; background: hsl(var(--background)); }
+.dashboard-grid { display: grid; grid-template-columns: minmax(0, 1fr) 175px; gap: 24px; }
+/* The team lens keeps the wider 300px side panel; only the week-view side column narrows. */
+.dashboard-grid.team-lens-grid { grid-template-columns: minmax(0, 1fr) 300px; }
+.schedule-row, .schedule-head { font-size: 16px; }
+.schedule-row img { width: 2em; height: 2em; }
+.schedule-row svg { width: 1.1em; height: 1.1em; } /* inherits the 0.625em venue line: 1.1 x 10px = 11px at full scale */
+/* The week board sizes its own contents: the side column takes 175px + a 24px gap out of the
+   viewport, so a row's width tracks the board, not the window. At 16px the widest short name
+   ("Commanders", 82px in Space Grotesk Bold) needs 566px of board; below that, switch to the
+   compact grid and scale down to 85%, which is flush again at 450px (11.05px "Commanders" = 69px). */
+.week-board { container-type: inline-size; }
+@container (max-width: 566px) {
+  .schedule-row, .schedule-head {
+    font-size: clamp(13.6px, calc(16px - (566px - 100cqw) / 48.3), 16px);
+    grid-template-columns: 4.5em minmax(0, 1fr) 5.375em;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+/* Below 450cqw the row is already at its 13.6px floor and the short names would start to
+   truncate, so the matchup drops to the side panel's compact form (crest + BUF) instead.
+   That frees ~85px of board, which is what lets the side column stay beside it to 570px. */
+@container (max-width: 450px) {
+  .week-team-name { display: none; }
+  .week-team-code {
+    font-family: 'Space Grotesk', ui-sans-serif, sans-serif;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1.2;
+    color: hsl(var(--primary));
+  }
+}
+.schedule-row { transition: background-color 160ms ease, transform 160ms ease; }
+.schedule-row:hover { background: hsl(218 25% 97%); }
+.team-row { transition: background-color 160ms ease; }
+/* The schedule table sizes its own contents: names/metrics respond to the table's width,
+   not the viewport, so the side panel appearing or disappearing is accounted for. */
+.team-schedule { container-type: inline-size; }
+.team-name-short, .team-name-code { display: none; }
+@container (max-width: 580px) {
+  /* Drop the city (San Francisco 49ers -> 49ers) */
+  .team-name-full { display: none; }
+  .team-name-short { display: inline; }
+}
+@container (max-width: 470px) {
+  /* Tighten the frame: stack kickoff under the date, trim gutters and logos */
+  .team-row { grid-template-columns: 1.9rem minmax(0, 1fr) 4.2rem; gap: 6px; padding-left: 10px; padding-right: 10px; }
+  .team-row-meta { flex-direction: column; align-items: flex-end; gap: 0; }
+  .team-row-meta > span { width: auto; }
+  .team-row-matchup { grid-template-columns: minmax(0, 1fr) 0.9rem minmax(0, 1fr); gap: 4px; }
+  .team-row img, .team-row .team-mark { height: 20px; width: 20px; }
+}
+@container (max-width: 340px) {
+  /* Last resort before anything could clip: abbreviations (Lions -> DET) */
+  .team-name-short { display: none; }
+  .team-name-code { display: inline; }
+}
+.team-lens-head { font-size: 30px; }
+.team-lens-head .team-lens-name { font-size: 1em; line-height: 1.2; }
+.team-lens-head .team-mark { height: 1.867em; width: 1.867em; }
+.team-row:hover { background: hsl(218 25% 97%); }
+.dark .team-row:hover, .dark .schedule-row:hover { background: hsl(220 31% 18%); }
+.border.bg-card { box-shadow: 0 1px 2px rgba(22, 35, 58, 0.05), 0 6px 20px rgba(22, 35, 58, 0.05); }
+.team-mark { transition: transform 180ms ease; }
+.team-mark:hover { transform: translateY(-2px); }
+/* Primary nav tabs: scale down to 85% before anything can overflow, never scroll */
+.app-nav { font-size: 16px; }
+.app-nav-tab { font-size: 0.75em; gap: 0.6667em; padding: 1em 1em; }
+.app-nav-tab svg { width: 1.25em; height: 1.25em; }
+.app-nav-label-short { display: none; }
+@media (min-width: 1024px) { .app-nav-tab { padding-left: 1.3333em; padding-right: 1.3333em; } }
+@media (max-width: 640px) {
+  /* Shrink gradually to 85% between 640px and 430px so the labels never clip */
+  .app-nav { font-size: clamp(13.6px, calc(16px - (640px - 100vw) / 87.5), 16px); }
+}
+@media (max-width: 430px) {
+  /* Below this the full labels cannot fit at 85%, so shorten the text — styling is unchanged */
+  .app-nav-tab { padding-left: 0.6667em; padding-right: 0.6667em; }
+  .app-nav-label-full { display: none; }
+  .app-nav-label-short { display: inline; }
+}
+/* Live marker: a slow pulse, suppressed for anyone who asked for less motion. */
+.live-dot { animation: live-pulse 1.6s ease-in-out infinite; }
+@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+.week-button { transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease; }
+.week-button:hover { border-color: hsl(var(--primary)); color: hsl(var(--primary)); }
+.matrix-cell { min-width: 36px; }
+.matrix-cell:hover { background: hsl(218 25% 96%); }
+.fade-in { animation: fade-in 360ms ease-out both; }
+.fade-in-delay { animation: fade-in 450ms 80ms ease-out both; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 900px) {
+  /* Shrink the team lens headline (name + crest) gradually to 85% between 900px and 620px so the dropdown arrow never gets clipped */
+  .team-lens-head { font-size: clamp(25.5px, calc(30px - (900px - 100vw) / 62.2), 30px); }
+}
+
+/* The week board keeps the side column beside it down to 570px, where the board is still
+   570 - 175 - 24 - 4 = 367px: what a compact (crest + code) row needs at the 13.6px floor.
+   Below that the codes would crowd, so the board takes the full width — and at full width it is
+   wide enough for the short names again. Team lens collapses at 620px below. */
+@media (max-width: 570px) {
+  .dashboard-grid:not(.team-lens-grid) { grid-template-columns: 1fr; }
+}
+
+
+@media (max-width: 620px) {
+  .dashboard-grid.team-lens-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .mobile-scroll { overflow-x: auto; }
+  .mobile-hide { display: none; }
+  .matrix-cell { min-width: 34px; }
+}

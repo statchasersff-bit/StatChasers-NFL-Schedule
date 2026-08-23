@@ -55,15 +55,17 @@ export const GetNflScheduleResponse = zod.object({
   "homeTeam": zod.string(),
   "awayScore": zod.number().nullable(),
   "homeScore": zod.number().nullable(),
-  "status": zod.string(),
+  "status": zod.string().describe('SCHEDULED, LIVE, or FINAL. LIVE and FINAL are driven by ESPN\'s live game state.'),
+  "statusDetail": zod.string().nullable().describe('Live\/final detail from ESPN, e.g. \"Q3 5:23\" or \"Final\/OT\". Null before kickoff.'),
   "network": zod.string().nullable(),
   "stadium": zod.string().nullable(),
   "location": zod.string().nullable(),
   "international": zod.boolean(),
   "neutralSite": zod.boolean(),
-  "primetime": zod.boolean(),
   "divisionGame": zod.boolean(),
-  "holiday": zod.string().nullable()
+  "holiday": zod.string().nullable(),
+  "spreadLine": zod.number().nullable(),
+  "totalLine": zod.number().nullable()
 }))
 })
 

@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "E-KKOTqhYtJRug1Ogerzl"
+uri = "file://attached_assets/Screenshot_2026-08-23_010102_1787461368482.png"
+type = "image"
+title = "StatChasers Team Lens Reference"
+description = "Saved reference screenshot for the StatChasers NFL Schedule team lens design."
+logical_id = "e562dd2b-3383-44cc-877d-ef743ddda00e"
+content_hash = "sha256:97b22c2e153fa43fe3f2a48acbd48e9e44cf8b0bb259c9bdbf778742756df9c4"
+size = 187043
+mtime_ms = 1787461370634
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/e562dd2b-3383-44cc-877d-ef743ddda00e/b841e390-cc9d-46c3-9f44-7416c8135cc2"
+storage_version_token = "1787461381588638"
+content_type = "image/png"

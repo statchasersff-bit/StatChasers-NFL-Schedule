@@ -19,6 +19,11 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+// The dev server has no API of its own; /api is answered by @workspace/api-server. Without this
+// proxy vite falls through to the SPA shell and returns index.html with a 200, so a missing API
+// surfaces as a JSON parse error rather than a connection error.
+const apiProxyTarget = process.env.API_PROXY_TARGET || 'http://localhost:5000';
+
 const basePath = process.env.BASE_PATH;
 
 if (!basePath) {
@@ -69,6 +74,12 @@ export default defineConfig({
     strictPort: true,
     host: '0.0.0.0',
     allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+    },
     fs: {
       strict: true,
     },
@@ -77,5 +88,11 @@ export default defineConfig({
     port,
     host: '0.0.0.0',
     allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+    },
   },
 });

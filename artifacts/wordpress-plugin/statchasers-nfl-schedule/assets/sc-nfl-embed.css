@@ -1,0 +1,148 @@
+/* Styles for the server-rendered schedule.
+ *
+ * Kept deliberately small and inheritance-friendly: this markup sits inside the WordPress theme,
+ * so it borrows the theme's font and colours (via currentColor) instead of imposing its own. The
+ * app bundle brings the full StatChasers design; this is what stands in before — and instead of —
+ * that bundle.
+ */
+
+.sc-nfl-root {
+	display: none;
+}
+
+/* App.tsx adds `sc-nfl-ready` to <html> only once the schedule data has arrived, so the static
+   table is never replaced by a loading skeleton. */
+.sc-nfl-ready .sc-nfl-static {
+	display: none;
+}
+
+.sc-nfl-ready .sc-nfl-root {
+	display: block;
+}
+
+.sc-nfl-notice {
+	padding: 1em;
+	border: 1px solid currentColor;
+	opacity: 0.75;
+}
+
+.sc-nfl-weeknav ul {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35em;
+	margin: 0 0 1.5em;
+	padding: 0;
+	list-style: none;
+}
+
+.sc-nfl-weeknav li {
+	margin: 0;
+}
+
+.sc-nfl-weeknav a {
+	display: inline-block;
+	padding: 0.25em 0.6em;
+	border: 1px solid currentColor;
+	font-size: 0.85em;
+	line-height: 1.4;
+	text-decoration: none;
+	opacity: 0.8;
+}
+
+.sc-nfl-weeknav a:hover,
+.sc-nfl-weeknav a:focus {
+	opacity: 1;
+}
+
+.sc-nfl-week {
+	margin: 0 0 2.5em;
+}
+
+.sc-nfl-week-title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.6em;
+	margin: 0 0 0.5em;
+}
+
+.sc-nfl-week-range {
+	font-size: 0.7em;
+	font-weight: 400;
+	opacity: 0.7;
+}
+
+/* Wide tables scroll inside their own box rather than pushing the page sideways on mobile. */
+.sc-nfl-tablewrap {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.sc-nfl-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95em;
+}
+
+.sc-nfl-caption {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.sc-nfl-table th,
+.sc-nfl-table td {
+	padding: 0.5em 0.75em;
+	text-align: left;
+	vertical-align: top;
+	border-bottom: 1px solid currentColor;
+}
+
+.sc-nfl-table thead th {
+	font-size: 0.75em;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	white-space: nowrap;
+}
+
+.sc-nfl-date,
+.sc-nfl-kick {
+	white-space: nowrap;
+}
+
+.sc-nfl-matchup {
+	min-width: 16em;
+}
+
+.sc-nfl-row.is-live .sc-nfl-kick {
+	font-weight: 700;
+}
+
+.sc-nfl-badge {
+	display: inline-block;
+	margin-left: 0.4em;
+	padding: 0.05em 0.4em;
+	border: 1px solid currentColor;
+	font-size: 0.7em;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	white-space: nowrap;
+	opacity: 0.7;
+}
+
+@media (max-width: 640px) {
+	.sc-nfl-table {
+		font-size: 0.85em;
+	}
+
+	.sc-nfl-table th,
+	.sc-nfl-table td {
+		padding: 0.4em 0.5em;
+	}
+}

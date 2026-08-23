@@ -1,0 +1,14 @@
+/* Global element defaults. Standalone build only — the WordPress bundle scopes these
+   to .sc-nfl-app so the surrounding theme is never touched. */
+
+@layer base {
+  * { @apply border-border; }
+  html { background: hsl(var(--background)); }
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    margin: 0;
+    min-width: 320px;
+  }
+  button, input, select { font: inherit; }
+  button { cursor: pointer; }
+}

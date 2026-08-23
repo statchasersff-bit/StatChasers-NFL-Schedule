@@ -9,7 +9,7 @@ A premium interactive 2026 NFL schedule tool for fantasy football players.
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: none beyond `PORT` (set by the workflow). `DATABASE_URL` is only needed once `lib/db` is actually used — no code imports it today.
 
 ## Stack
 
@@ -22,7 +22,7 @@ A premium interactive 2026 NFL schedule tool for fantasy football players.
 
 ## Where things live
 
-- `artifacts/nfl-schedule/src/App.tsx` — responsive weekly, team, bye-week, insights, and season-matrix experience.
+- `artifacts/nfl-schedule/src/App.tsx` — responsive weekly, team, bye-week, insights, and season-matrix experience. The team lens pairs a compact one-line schedule list with a season snapshot / season path / division slate / opponent breakdown sidebar.
 - `artifacts/nfl-schedule/src/index.css` — StatChasers navy/brass visual tokens and responsive layout rules.
 - `artifacts/api-server/src/routes/nfl.ts` — normalized nflverse schedule feed with server-side caching and team metadata.
 - `lib/api-spec/openapi.yaml` — source-of-truth contract for the schedule API.
@@ -31,12 +31,14 @@ A premium interactive 2026 NFL schedule tool for fantasy football players.
 
 - The UI derives every view from one normalized season payload to keep weekly, team, matrix, bye, and insights data consistent.
 - Schedule data is fetched server-side from nflverse and cached in memory for six hours; pre-season schedule files can remain incomplete without fabricated kickoff details.
+- TV networks are joined best-effort from ESPN's public scoreboard API (one request per week, keyed by the nflverse `espn` game id); if ESPN is unreachable, games ship with `network: null` rather than failing the feed.
 - Team codes are centralized and legacy feed abbreviations are normalized at the API boundary.
 
 ## Product
 
 - Browse the 2026 regular season by week, team, or full-season matrix.
-- Search teams by name, city, or abbreviation; inspect byes, primetime, divisional, and international games.
+- The team lens derives home/away splits, bye week, thirds-of-season path, division slate, and opponent conference/division mix from the same normalized payload.
+- Search teams by name, city, or abbreviation; inspect byes, divisional, and international games.
 - Share filtered views through URL state without full page reloads.
 
 ## User preferences

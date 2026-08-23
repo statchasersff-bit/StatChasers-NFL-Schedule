@@ -115,6 +115,10 @@ components:
           type: ["number", "null"]
         status:
           type: string
+          description: SCHEDULED, LIVE, or FINAL. LIVE and FINAL are driven by ESPN's live game state.
+        statusDetail:
+          type: ["string", "null"]
+          description: Live/final detail from ESPN, e.g. "Q3 5:23" or "Final/OT". Null before kickoff.
         network:
           type: ["string", "null"]
         stadium:
@@ -125,13 +129,15 @@ components:
           type: boolean
         neutralSite:
           type: boolean
-        primetime:
-          type: boolean
         divisionGame:
           type: boolean
         holiday:
           type: ["string", "null"]
-      required: [id, season, week, date, day, time, awayTeam, homeTeam, awayScore, homeScore, status, network, stadium, location, international, neutralSite, primetime, divisionGame, holiday]
+        spreadLine:
+          type: ["number", "null"]
+        totalLine:
+          type: ["number", "null"]
+      required: [id, season, week, date, day, time, awayTeam, homeTeam, awayScore, homeScore, status, statusDetail, network, stadium, location, international, neutralSite, divisionGame, holiday, spreadLine, totalLine]
     NflScheduleResponse:
       type: object
       properties:

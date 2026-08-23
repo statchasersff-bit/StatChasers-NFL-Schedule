@@ -22,7 +22,13 @@ export interface NflGame {
   awayScore: number | null;
   /** @nullable */
   homeScore: number | null;
+  /** SCHEDULED, LIVE, or FINAL. LIVE and FINAL are driven by ESPN's live game state. */
   status: string;
+  /**
+     * Live/final detail from ESPN, e.g. "Q3 5:23" or "Final/OT". Null before kickoff.
+     * @nullable
+     */
+  statusDetail: string | null;
   /** @nullable */
   network: string | null;
   /** @nullable */
@@ -31,8 +37,11 @@ export interface NflGame {
   location: string | null;
   international: boolean;
   neutralSite: boolean;
-  primetime: boolean;
   divisionGame: boolean;
   /** @nullable */
   holiday: string | null;
+  /** @nullable */
+  spreadLine: number | null;
+  /** @nullable */
+  totalLine: number | null;
 }

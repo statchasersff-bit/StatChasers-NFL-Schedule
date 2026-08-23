@@ -1,0 +1,80 @@
+/* WordPress bundle entry.
+ *
+ * Two deliberate differences from the standalone build:
+ *   1. Tailwind's preflight is NOT imported. Preflight resets `*`, `html` and `body`
+ *      globally, which would strip margins, borders and list styles off the entire
+ *      WordPress theme. The scoped reset below reproduces the parts the app relies on,
+ *      confined to `.sc-nfl-app`.
+ *   2. Every `:root` selector in the compiled output is rewritten to `.sc-nfl-app`
+ *      (see scopeRootSelector in vite.wordpress.config.ts), so the design tokens never
+ *      land on the document root where they could collide with the theme's own
+ *      `--background`, `--border`, `--font-sans` and friends.
+ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import 'tw-animate-css';
+
+@import './styles/app.css';
+
+@layer base {
+  /* Scoped preflight: the subset of Tailwind's reset the app's utilities assume.
+     `--tw-border-style` is registered by the utilities layer via @property, so border
+     utilities still resolve to `solid` without preflight. */
+  .sc-nfl-app,
+  .sc-nfl-app *,
+  .sc-nfl-app *::before,
+  .sc-nfl-app *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+
+  .sc-nfl-app {
+    @apply font-sans antialiased bg-background text-foreground;
+    border-color: hsl(var(--border));
+    line-height: 1.5;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .sc-nfl-app :where(h1, h2, h3, h4, h5, h6) {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  .sc-nfl-app :where(ul, ol, menu) {
+    list-style: none;
+  }
+
+  .sc-nfl-app :where(a) {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  .sc-nfl-app :where(img, svg, video, canvas) {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .sc-nfl-app :where(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+    background-color: transparent;
+    border-radius: 0;
+  }
+
+  .sc-nfl-app :where(button) {
+    cursor: pointer;
+    text-transform: none;
+  }
+
+  .sc-nfl-app :where(table) {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+}
