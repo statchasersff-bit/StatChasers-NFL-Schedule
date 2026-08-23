@@ -57,6 +57,7 @@ Leave the page's own `<h1>` as the title — week headings are `<h2>` so the out
 | `heading` | `h2` | `h2`, `h3` or `h4` for week titles. |
 | `jsonld` | `upcoming` | `upcoming` (from today, max 64 events), `all` (all 272, ~100 KB), or `none`. |
 | `app` | `yes` | `no` renders the static table only and skips the React bundle entirely. |
+| `width` | `content` | `wide` breaks out of the theme's column up to 1480px; `full` goes edge to edge. Both subtract the measured scrollbar width so the page never scrolls sideways. |
 
 ## How the data works
 
@@ -99,16 +100,30 @@ replaced by a loading skeleton. If the script fails or JS is off, the static tab
 That is also what a crawler sees, and the two versions carry the same content, so there is no
 cloaking risk.
 
-### Style isolation
+### Style isolation — the app renders in a shadow root
 
-The app is Tailwind-based and would otherwise wreck the surrounding theme. The WordPress bundle:
+Tailwind emits all of its CSS inside `@layer`, and **unlayered CSS beats layered CSS regardless of
+specificity**. A theme's CSS is unlayered, so an ordinary rule like `.entry-content button { display:
+block }` overrides every utility in the bundle — which shows up as a vertical nav instead of a
+horizontal one, collapsed row grids, and the theme's fonts throughout.
 
-- **omits Tailwind's preflight**, which resets `*`, `html` and `body` globally, and substitutes a
-  scoped reset confined to `.sc-nfl-app`;
-- **rewrites every `:root` to `.sc-nfl-app`** at build time, so tokens like `--background`,
-  `--border` and `--font-sans` never land on the document root beside your theme's own variables.
+Specificity cannot win that fight. So the app mounts inside a **shadow root**, which is a hard style
+boundary in both directions: theme CSS cannot reach in, and the app's CSS cannot leak out.
 
-Both are verified in the built CSS: zero `:root`, zero global `body` rules, zero universal reset.
+Three consequences the build handles automatically:
+
+- **`:root` becomes `:host`.** Inside a shadow tree `:root` matches nothing, so the design tokens
+  would never apply.
+- **`@font-face` and `@property` are hoisted** into `assets/sc-nfl-schedule.document.css`, which the
+  plugin enqueues normally. Both are document-scoped and silently ignored inside a shadow root —
+  without the `@property` registrations, Tailwind v4 loses `--tw-border-style: solid` and every
+  border in the app disappears.
+- **Radix portals** (the team picker, the export menu, tooltips) are given the shadow container
+  explicitly; left alone they escape to `document.body` and render unstyled.
+
+Verified by rendering the app against a deliberately hostile theme stylesheet — one that forces
+`display: block` on buttons, Georgia on everything, red links, and double borders on tables — and
+confirming the widget is untouched while the surrounding page still shows all of it.
 
 ## Maintenance
 

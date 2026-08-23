@@ -38,6 +38,7 @@ class SC_NFL_Render {
 	 *   heading  Heading tag for week titles: h2 (default), h3 or h4. The page title should own h1.
 	 *   jsonld   upcoming (default) | all | none.
 	 *   app      yes (default) | no. "no" ships the static table only, with no React bundle.
+	 *   width    content (default) | wide (breaks out to 1480px) | full (edge to edge).
 	 *
 	 * @param array|string $atts Shortcode attributes.
 	 * @return string
@@ -49,6 +50,7 @@ class SC_NFL_Render {
 				'heading' => 'h2',
 				'jsonld'  => 'upcoming',
 				'app'     => 'yes',
+				'width'   => 'content',
 			),
 			$atts,
 			'nfl_schedule'
@@ -63,6 +65,8 @@ class SC_NFL_Render {
 		}
 
 		$use_app = 'no' !== strtolower( $atts['app'] );
+		$width   = strtolower( $atts['width'] );
+		$width   = in_array( $width, array( 'content', 'wide', 'full' ), true ) ? $width : 'content';
 		self::enqueue( $season, $use_app );
 
 		$teams = self::index_teams( $payload['teams'] );
@@ -70,7 +74,7 @@ class SC_NFL_Render {
 
 		ob_start();
 		?>
-		<div class="sc-nfl-embed" data-sc-nfl-season="<?php echo esc_attr( (string) $season ); ?>">
+		<div class="sc-nfl-embed sc-nfl-width-<?php echo esc_attr( $width ); ?>" data-sc-nfl-season="<?php echo esc_attr( (string) $season ); ?>">
 			<div class="sc-nfl-static" data-sc-nfl-static>
 				<?php echo self::render_week_nav( $weeks ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				<?php
@@ -106,6 +110,25 @@ class SC_NFL_Render {
 			SC_NFL_VERSION
 		);
 
+		// Measure the scrollbar so the wide/full widths can subtract it from 100vw instead of
+		// overflowing the page sideways.
+		//
+		// Measuring once at load is not enough: the page is still short at that point, so there is
+		// no vertical scrollbar to measure, and none appears until the schedule has rendered. A
+		// ResizeObserver catches that later growth. The write is guarded on a changed value, since
+		// the property feeds back into layout and an unguarded write can oscillate.
+		wp_add_inline_style( 'sc-nfl-embed', ':root{--sc-scrollbar:0px}' );
+		wp_register_script( 'sc-nfl-scrollbar', '', array(), SC_NFL_VERSION, false );
+		wp_enqueue_script( 'sc-nfl-scrollbar' );
+		wp_add_inline_script(
+			'sc-nfl-scrollbar',
+			'(function(){var last=null,r=document.documentElement;'
+				. 'function m(){var v=(window.innerWidth-r.clientWidth)+"px";'
+				. 'if(v!==last){last=v;r.style.setProperty("--sc-scrollbar",v);}}'
+				. 'm();window.addEventListener("resize",m);window.addEventListener("load",m);'
+				. 'if(window.ResizeObserver){new ResizeObserver(m).observe(r);}})();'
+		);
+
 		if ( ! $use_app ) {
 			return;
 		}
@@ -119,8 +142,12 @@ class SC_NFL_Render {
 			return;
 		}
 
-		if ( file_exists( $style ) ) {
-			wp_enqueue_style( 'sc-nfl-app', SC_NFL_URL . 'assets/sc-nfl-schedule.css', array(), SC_NFL_VERSION );
+		// The app renders in a shadow root, so its stylesheet is fetched and injected there rather
+		// than linked here — that boundary is what keeps the theme's CSS out. Only the at-rules a
+		// shadow root ignores (@font-face, @property) are enqueued at document level.
+		$document_style = SC_NFL_PATH . 'assets/sc-nfl-schedule.document.css';
+		if ( file_exists( $document_style ) ) {
+			wp_enqueue_style( 'sc-nfl-app-document', SC_NFL_URL . 'assets/sc-nfl-schedule.document.css', array(), SC_NFL_VERSION );
 		}
 
 		wp_enqueue_script( 'sc-nfl-app', SC_NFL_URL . 'assets/sc-nfl-schedule.js', array(), SC_NFL_VERSION, true );
@@ -130,6 +157,7 @@ class SC_NFL_Render {
 			'basePath' => wp_parse_url( get_permalink(), PHP_URL_PATH ),
 			'season'   => $season,
 			'mount'    => '#sc-nfl-root',
+			'styleUrl' => file_exists( $style ) ? esc_url_raw( SC_NFL_URL . 'assets/sc-nfl-schedule.css' ) . '?v=' . rawurlencode( SC_NFL_VERSION ) : '',
 		);
 		if ( empty( $config['basePath'] ) ) {
 			$config['basePath'] = '/';

@@ -10,6 +10,31 @@
 	display: none;
 }
 
+/* Width modes.
+ *
+ * A theme's content column is often far narrower than the app was designed for, which pushes the
+ * side panel below the board and shortens team names to codes. `wide` and `full` break the embed
+ * out of that column.
+ *
+ * 100vw includes the scrollbar, so using it naively adds a horizontal scrollbar to the whole page.
+ * --sc-scrollbar is measured by the plugin's inline script and subtracted; if that script never
+ * runs the fallback of 0px is still correct on any overlay-scrollbar platform. */
+.sc-nfl-width-wide,
+.sc-nfl-width-full {
+	position: relative;
+	left: 50%;
+	transform: translateX(-50%);
+	width: calc(100vw - var(--sc-scrollbar, 0px));
+	max-width: calc(100vw - var(--sc-scrollbar, 0px));
+	box-sizing: border-box;
+	padding-left: clamp(12px, 2.5vw, 40px);
+	padding-right: clamp(12px, 2.5vw, 40px);
+}
+
+.sc-nfl-width-wide {
+	max-width: min(1480px, calc(100vw - var(--sc-scrollbar, 0px)));
+}
+
 /* App.tsx adds `sc-nfl-ready` to <html> only once the schedule data has arrived, so the static
    table is never replaced by a loading skeleton. */
 .sc-nfl-ready .sc-nfl-static {

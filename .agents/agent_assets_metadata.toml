@@ -14,3 +14,17 @@ mtime_ms = 1787461370634
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/e562dd2b-3383-44cc-877d-ef743ddda00e/b841e390-cc9d-46c3-9f44-7416c8135cc2"
 storage_version_token = "1787461381588638"
 content_type = "image/png"
+
+[[outputs]]
+id = "VzRKv8jr5d7uPgkHvYKFf"
+uri = "file://attached_assets/image_1787462308634.png"
+type = "image"
+title = "2026 NFL Schedule Reference"
+description = "Saved reference image for the StatChasers NFL Schedule interface."
+logical_id = "5c6a1c68-5dd2-4fc7-a7f0-fe93ee6184f8"
+content_hash = "sha256:118f9cc25f85ebe41782701ff6d54045996af1a5906a57bc49cd32771c2e341d"
+size = 180947
+mtime_ms = 1787462309825
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/5c6a1c68-5dd2-4fc7-a7f0-fe93ee6184f8/04ff9ca3-de6d-47a9-a60e-7b007e9dc673"
+storage_version_token = "1787462317633439"
+content_type = "image/png"

@@ -25,7 +25,7 @@ import {
 import { ErrorBoundary } from '@/components/error-boundary';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { exportSchedule, type ExportFormat } from '@/lib/export';
-import { getConfig } from '@/config';
+import { getConfig, routerBase } from '@/config';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Toaster } from '@/components/ui/toaster';
@@ -802,7 +802,7 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 }
 
 function App() {
-  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={getConfig().basePath.replace(/\/$/, '')}><Router /></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={routerBase()}><Router /></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
 }
 
 export default App;

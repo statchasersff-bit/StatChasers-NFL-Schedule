@@ -22,6 +22,10 @@ import { getConfig } from './config';
 import { PortalContainerContext } from './portal-container';
 import { ErrorBoundary } from '@/components/error-boundary';
 
+// Kept in the module graph so the build emits it; the split plugin then divides it into the
+// document stylesheet and the shadow stylesheet. Nothing is auto-injected into the page.
+import './wordpress.css';
+
 async function loadStyles(shadow: ShadowRoot, href: string) {
   // Fetched rather than inlined so the browser caches it separately from the JS, and injected
   // rather than <link>ed so we can await it — the static table is still on screen meanwhile, so
