@@ -1,4 +1,4 @@
-import { type ReactNode, type CSSProperties, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, type ReactNode, type CSSProperties, useCallback, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -10,10 +10,10 @@ import {
   Download,
   Grid2X2,
   List,
-  MapPin,
   RefreshCw,
   Shield,
   Sparkles,
+  Tv,
   Users,
 } from 'lucide-react';
 import {
@@ -25,6 +25,7 @@ import {
 import { ErrorBoundary } from '@/components/error-boundary';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { exportSchedule, type ExportFormat } from '@/lib/export';
+import { networkMarks, type NetworkMark } from '@/lib/network-logos';
 import { getConfig, routerBase } from '@/config';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
@@ -175,6 +176,51 @@ function WeekRail({ week, setState }: { week: number; setState: typeof updateSta
   );
 }
 
+/** One broadcaster logo, drawn in the row's own text colour. */
+function NetworkMarkIcon({ mark }: { mark: NetworkMark }) {
+  return (
+    <svg
+      className="net-mark"
+      viewBox={mark.viewBox}
+      style={{ height: `${mark.height}em` }}
+      role="img"
+      aria-label={mark.label}
+      // Generated at build time from the artwork in scripts/build-network-logos.mjs, never from
+      // feed data, so there is nothing here for a schedule response to inject.
+      dangerouslySetInnerHTML={{ __html: mark.body }}
+    />
+  );
+}
+
+/**
+ * Who is carrying the game.
+ *
+ * A logo where we have one, the broadcaster's own name where we do not — the cell always says
+ * something, because "which channel is this on" is the question this column exists to answer.
+ */
+function NetworkCell({ network, id }: { network: string | null; id: string }) {
+  const marks = networkMarks(network);
+  const label = network || 'Broadcast TBD';
+  if (!marks.length) {
+    return (
+      <div className="flex items-center justify-end gap-1.5 text-[0.75em]" title={label}>
+        <Tv className="shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span className="truncate font-display font-bold text-primary" data-testid={`text-network-${id}`}>{network || 'TBD'}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center justify-end gap-1.5 text-primary" title={label} data-testid={`text-network-${id}`}>
+      {marks.map((mark, index) => (
+        <Fragment key={mark.label}>
+          {index > 0 && <span className="h-2.5 w-px shrink-0 bg-border" aria-hidden="true" />}
+          <NetworkMarkIcon mark={mark} />
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
 function GameRow({ game, teams }: { game: NflGame; teams: NflTeam[] }) {
   const away = teams.find((team) => team.code === game.awayTeam);
   const home = teams.find((team) => team.code === game.homeTeam);
@@ -201,8 +247,8 @@ function GameRow({ game, teams }: { game: NflGame; teams: NflTeam[] }) {
         </div>
       </div>
       <div className="text-right">
-        <div className="flex items-center justify-end gap-1.5">{game.divisionGame && <span className="shrink-0 border border-border px-1.5 py-0.5 text-[0.5625em] font-bold uppercase tracking-[0.08em] text-muted-foreground">Div</span>}<span className="font-display text-[0.75em] font-bold text-primary">{game.holiday || game.network || '—'}</span></div>
-        <div className="mt-0.5 flex items-center justify-end gap-1.5 text-[0.625em] text-muted-foreground"><MapPin size={11} className="shrink-0" /><span className="min-w-0 truncate" title={game.stadium || game.location || undefined}>{game.stadium || game.location || 'Venue TBD'}</span></div>
+        <NetworkCell network={game.network} id={game.id} />
+        {(game.divisionGame || game.holiday) && <div className="mt-0.5 flex flex-wrap items-center justify-end gap-1">{game.divisionGame && <span className="shrink-0 border border-border px-1.5 py-0.5 text-[0.5625em] font-bold uppercase tracking-[0.08em] text-muted-foreground">Div</span>}{game.holiday && <span className="shrink-0 truncate border border-border px-1.5 py-0.5 text-[0.5625em] font-bold uppercase tracking-[0.08em] text-muted-foreground">{game.holiday}</span>}</div>}
       </div>
     </article>
   );
@@ -394,7 +440,7 @@ function WeeklyView({ games, teams, week, gameType, setState }: { games: NflGame
         <WeekRail week={week} setState={setState} />
       </div>
       <div className="week-board mt-5 overflow-hidden border border-border bg-card">
-        <div className="schedule-head grid grid-cols-[4.5em_minmax(0,1fr)_5.375em] gap-3 border-b border-border bg-secondary/50 px-4 py-1.5 font-bold uppercase text-muted-foreground sm:grid-cols-[96px_minmax(0,1fr)_118px] sm:px-5 xl:grid-cols-[112px_minmax(0,1fr)_145px]"><span className="text-[0.5625em] tracking-[0.14em]">When</span><span className="text-center text-[0.5625em] tracking-[0.14em]">Matchup</span><span className="text-right text-[0.5625em] tracking-[0.14em]">Details</span></div>
+        <div className="schedule-head grid grid-cols-[4.5em_minmax(0,1fr)_5.375em] gap-3 border-b border-border bg-secondary/50 px-4 py-1.5 font-bold uppercase text-muted-foreground sm:grid-cols-[96px_minmax(0,1fr)_118px] sm:px-5 xl:grid-cols-[112px_minmax(0,1fr)_145px]"><span className="text-[0.5625em] tracking-[0.14em]">When</span><span className="text-center text-[0.5625em] tracking-[0.14em]">Matchup</span><span className="text-right text-[0.5625em] tracking-[0.14em]">TV</span></div>
         {weekGames.length > 0 ? weekGames.map((game) => <GameRow key={game.id} game={game} teams={teams} />) : <EmptyState title={`Week ${week} is still open`} body="No normalized matchups were returned for this week." />}
       </div>
     </>

@@ -182,6 +182,24 @@
 	white-space: nowrap;
 }
 
+.sc-nfl-tv {
+	white-space: nowrap;
+}
+
+/* Broadcaster marks. Two-tone artwork: the ink is currentColor so a logo takes the theme's text
+   colour, and the holes a logo punches through itself fall back to the page canvas, which keeps
+   them readable on a light theme and a dark one. Height comes from the mark's own inline style --
+   a shield and a wordmark need different optical sizes -- so only the width is constrained here. */
+.sc-nfl-net {
+	width: auto;
+	max-width: 5em;
+	vertical-align: -0.15em;
+}
+
+.sc-nfl-net + .sc-nfl-net {
+	margin-left: 0.5em;
+}
+
 .sc-nfl-matchup {
 	min-width: 16em;
 }

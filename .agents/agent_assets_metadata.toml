@@ -70,3 +70,87 @@ mtime_ms = 1787508155947
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/ddbf14a8-7ac4-4b77-a477-295b666dae55/542706f5-7e66-43f4-951b-d4b522fdc93c"
 storage_version_token = "1787508162657736"
 content_type = "image/png"
+
+[[outputs]]
+id = "4XQXqSKDKhI439UyqjP0A"
+uri = "file://attached_assets/ESPN_logo_1788802380500.png"
+type = "image"
+title = "ESPN Logo"
+description = "Saved ESPN Logo image asset."
+logical_id = "2b786760-8ee9-4ca4-8d92-d5ebd7e03eaa"
+content_hash = "sha256:62834a574e44dad78e2f1d4c9cb037c26fff1d8239326c38658920fbe7b381b4"
+size = 5489
+mtime_ms = 1788802381197
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/2b786760-8ee9-4ca4-8d92-d5ebd7e03eaa/1dc42961-b155-40fa-9c3f-0a2c2b002fe8"
+storage_version_token = "1788802396414342"
+content_type = "image/png"
+
+[[outputs]]
+id = "AWHW2-JtLvF4RxLraXUli"
+uri = "file://attached_assets/NBC_logo_1788802380501.webp"
+type = "image"
+title = "NBC Logo"
+description = "Saved NBC Logo image asset."
+logical_id = "c65ce4d6-f0b4-4616-a0fe-bc58c235d03b"
+content_hash = "sha256:a215e9df7e6e50345147eb521331429ea9d5ed81a58b40e95344d44d2e826ac0"
+size = 126634
+mtime_ms = 1788802381417
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/c65ce4d6-f0b4-4616-a0fe-bc58c235d03b/5b2d7278-36b6-443a-9c8b-9f87bb3af0f5"
+storage_version_token = "1788802397060933"
+content_type = "image/webp"
+
+[[outputs]]
+id = "Sy_8bkrLDXMkFuyvKaXeK"
+uri = "file://attached_assets/ABC_logo_1788802380501.webp"
+type = "image"
+title = "ABC Logo"
+description = "Saved ABC Logo image asset."
+logical_id = "c8505eb0-5288-4586-aa1b-aba9b4a74ad7"
+content_hash = "sha256:33b104a4c903b1809dd61ebabef1ba434c43a6a612b8be141ea296ad432889c9"
+size = 16786
+mtime_ms = 1788802381225
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/c8505eb0-5288-4586-aa1b-aba9b4a74ad7/d576bf2f-0c97-43c8-b524-e2a5014d8e20"
+storage_version_token = "1788802397770576"
+content_type = "image/webp"
+
+[[outputs]]
+id = "4z4FcM5n1y8LPyMWEkSwU"
+uri = "file://attached_assets/Fox_Sports_Logo_1788802380502.webp"
+type = "image"
+title = "Fox Sports Logo"
+description = "Saved Fox Sports Logo image asset."
+logical_id = "a1cac7f6-7c59-4695-a846-fbb793b4bc2d"
+content_hash = "sha256:53c00f073a3810d1f28a07e5b33cb65b04fb88ce70fe1fae36cd6a148d772676"
+size = 13644
+mtime_ms = 1788802381205
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/a1cac7f6-7c59-4695-a846-fbb793b4bc2d/73eca3f5-2d67-4ee5-90a2-4b0749e7016b"
+storage_version_token = "1788802398426861"
+content_type = "image/webp"
+
+[[outputs]]
+id = "OM7YaDgTN2tw0UBCba7w2"
+uri = "file://attached_assets/Netflix_Logo_1788802380502.png"
+type = "image"
+title = "Netflix Logo"
+description = "Saved Netflix Logo image asset."
+logical_id = "c047d1fa-f96d-4687-bb87-01d30ff7d5a7"
+content_hash = "sha256:88c7b51e76b21e5f02c211b82386fd4c8afc70eb68b7b9e82f825fe644b3bd29"
+size = 101123
+mtime_ms = 1788802381417
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/c047d1fa-f96d-4687-bb87-01d30ff7d5a7/1e26f24c-7edd-4c4a-bc9d-c630731a8054"
+storage_version_token = "1788802399067751"
+content_type = "image/png"
+
+[[outputs]]
+id = "1GS-cczYrQ6zeXfOma3KX"
+uri = "file://attached_assets/CBS_Sports_1788802380502.png"
+type = "image"
+title = "CBS Sports Logo"
+description = "Saved CBS Sports Logo image asset."
+logical_id = "f3c8e5a3-7ada-45e8-8c1a-bab7e07e42ae"
+content_hash = "sha256:d6ee0b41824366da1a68ed3fe3fc5a6c99eea0fd4979688958d4b3ae62f6184b"
+size = 19873
+mtime_ms = 1788802381241
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:aa34910b-8bde-4784-8979-417ec2cd80ff/f3c8e5a3-7ada-45e8-8c1a-bab7e07e42ae/788ac5ce-6318-45ff-89b0-9318cf8bc26b"
+storage_version_token = "1788802399668732"
+content_type = "image/png"

@@ -187,8 +187,9 @@ class SC_NFL_Render {
 		$style  = SC_NFL_PATH . 'assets/sc-nfl-schedule.css';
 
 		// The bundle is copied in from the app build. Without it the static table simply stands
-		// on its own rather than the page erroring.
-		if ( ! file_exists( $script ) ) {
+		// on its own rather than the page erroring. The stylesheet counts as part of the bundle:
+		// the app renders as unstyled markup without it, which is worse than the table it replaces.
+		if ( ! file_exists( $script ) || ! file_exists( $style ) ) {
 			return;
 		}
 
@@ -204,24 +205,22 @@ class SC_NFL_Render {
 
 		// The shadow stylesheet is fetched by the bundle rather than linked, so warm it in parallel
 		// with the script instead of waiting for the script to start the request.
-		if ( file_exists( $style ) ) {
-			add_action(
-				'wp_head',
-				static function () {
-					printf(
-						'<link rel="preload" as="style" href="%s" />' . "\n",
-						esc_url( SC_NFL_URL . 'assets/sc-nfl-schedule.css?v=' . rawurlencode( SC_NFL_VERSION ) )
-					);
-				}
-			);
-		}
+		add_action(
+			'wp_head',
+			static function () {
+				printf(
+					'<link rel="preload" as="style" href="%s" />' . "\n",
+					esc_url( SC_NFL_URL . 'assets/sc-nfl-schedule.css?v=' . rawurlencode( SC_NFL_VERSION ) )
+				);
+			}
+		);
 
 		$config = array(
 			'apiBase'  => esc_url_raw( rest_url( SC_NFL_Rest::NAMESPACE_V1 ) ),
 			'basePath' => wp_parse_url( get_permalink(), PHP_URL_PATH ),
 			'season'   => $season,
 			'mount'    => '#sc-nfl-root',
-			'styleUrl' => file_exists( $style ) ? esc_url_raw( SC_NFL_URL . 'assets/sc-nfl-schedule.css' ) . '?v=' . rawurlencode( SC_NFL_VERSION ) : '',
+			'styleUrl' => esc_url_raw( SC_NFL_URL . 'assets/sc-nfl-schedule.css' ) . '?v=' . rawurlencode( SC_NFL_VERSION ),
 		);
 		if ( empty( $config['basePath'] ) ) {
 			$config['basePath'] = '/';
@@ -319,9 +318,9 @@ class SC_NFL_Render {
 				. '<table class="sc-nfl-table">'
 				. '<caption class="sc-nfl-caption">%6$s</caption>'
 				. '<thead><tr>'
-				. '<th scope="col">%7$s</th><th scope="col">%8$s</th><th scope="col">%9$s</th><th scope="col">%10$s</th><th scope="col">%11$s</th>'
+				. '<th scope="col">%7$s</th><th scope="col">%8$s</th><th scope="col">%9$s</th><th scope="col">%10$s</th>'
 				. '</tr></thead>'
-				. '<tbody>%12$s</tbody>'
+				. '<tbody>%11$s</tbody>'
 				. '</table>'
 				. '</div>'
 				. '</section>',
@@ -342,7 +341,6 @@ class SC_NFL_Render {
 			esc_html__( 'Kickoff (ET)', 'sc-nfl' ),
 			esc_html__( 'Matchup', 'sc-nfl' ),
 			esc_html__( 'TV', 'sc-nfl' ),
-			esc_html__( 'Venue', 'sc-nfl' ),
 			$rows
 		);
 	}
@@ -388,25 +386,68 @@ class SC_NFL_Render {
 			$badges .= ' <span class="sc-nfl-badge">' . esc_html( ucwords( strtolower( $game['holiday'] ) ) ) . '</span>';
 		}
 
-		$venue = array_filter( array( $game['stadium'], $game['location'] ) );
-		$venue = empty( $venue ) ? __( 'Venue TBD', 'sc-nfl' ) : implode( ', ', array_unique( $venue ) );
-
 		return sprintf(
 			'<tr class="sc-nfl-row%1$s">'
 				. '<td class="sc-nfl-date">%2$s</td>'
 				. '<td class="sc-nfl-kick">%3$s</td>'
 				. '<td class="sc-nfl-matchup">%4$s%5$s</td>'
 				. '<td class="sc-nfl-tv">%6$s</td>'
-				. '<td class="sc-nfl-venue">%7$s</td>'
 				. '</tr>',
 			'LIVE' === $game['status'] ? ' is-live' : '',
 			esc_html( self::format_date( $game['date'], $game['day'] ) ),
 			esc_html( self::format_status( $game ) ),
 			esc_html( $matchup ),
 			$badges,
-			esc_html( null === $game['network'] || '' === $game['network'] ? '—' : $game['network'] ),
-			esc_html( $venue )
+			self::render_network( $game['network'] )
 		);
+	}
+
+	/** Broadcaster marks, loaded once from the generated table. See build-network-logos.mjs. */
+	private static $networks = null;
+
+	/**
+	 * The TV cell: the broadcaster's logo where there is one, its name where there is not.
+	 *
+	 * ESPN reports a simulcast as a single string ("ESPN / ABC"), so each side is resolved
+	 * separately. Marks are two-tone -- the ink follows the surrounding text colour and the
+	 * knockouts fall back to the page canvas -- so they read against whatever the theme paints.
+	 *
+	 * @param string|null $network Broadcaster name from the feed.
+	 * @return string HTML.
+	 */
+	private static function render_network( $network ) {
+		if ( null === self::$networks ) {
+			self::$networks = require SC_NFL_PATH . 'includes/network-marks.php';
+		}
+
+		$html = '';
+		$seen = array();
+		foreach ( explode( '/', (string) $network ) as $part ) {
+			$key = strtoupper( trim( $part ) );
+			if ( ! isset( self::$networks['aliases'][ $key ] ) ) {
+				continue;
+			}
+			$slug = self::$networks['aliases'][ $key ];
+			if ( isset( $seen[ $slug ] ) ) {
+				continue;
+			}
+			$seen[ $slug ] = true;
+			$mark          = self::$networks['marks'][ $slug ];
+			// 'body' is generated markup from a trusted source, never feed data, so it is echoed
+			// as-is; everything around it is escaped.
+			$html .= sprintf(
+				'<svg class="sc-nfl-net" viewBox="%1$s" style="height:%2$sem" role="img" aria-label="%3$s">%4$s</svg>',
+				esc_attr( $mark['viewBox'] ),
+				esc_attr( $mark['height'] ),
+				esc_attr( $mark['label'] ),
+				$mark['body']
+			);
+		}
+
+		if ( '' !== $html ) {
+			return $html;
+		}
+		return esc_html( null === $network || '' === $network ? __( 'TBD', 'sc-nfl' ) : $network );
 	}
 
 	/**
