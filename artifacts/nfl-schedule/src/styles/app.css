@@ -97,12 +97,15 @@
 .schedule-row, .schedule-head { font-size: 16px; }
 .schedule-row img { width: 2em; height: 2em; }
 .schedule-row svg { width: 1.1em; height: 1.1em; } /* inherits the 0.625em status line: 1.1 x 10px = 11px at full scale */
-/* Broadcaster marks are two-tone: the ink is currentColor, so a logo follows the row's text
-   colour, and the knockouts (the wordmark inside the abc circle, the shield's lettering) read
-   --sc-net-knockout, which has to track whatever the row is actually sitting on. Sized by
-   height with the width left free, since these range from a circle to a wordmark. */
-.schedule-row { --sc-net-knockout: hsl(var(--card)); }
-.schedule-row .net-mark { width: auto; height: 1em; max-width: 4em; } /* height is overridden per mark */
+/* Broadcaster logos scale down into one shared box, deliberately a little under the 2em crest
+   above: the network is secondary information, and matching the crest made the wide wordmarks
+   shout. Sizing by box rather than by height also lets a shield and a 4:1 wordmark settle at the
+   right weight against each other without per-logo numbers. */
+.schedule-row .net-mark { width: auto; height: auto; max-height: calc(1.5em * var(--net-scale, 1)); max-width: calc(3.25em * var(--net-scale, 1)); object-fit: contain; }
+/* The artwork is full colour with black elements in it -- the abc circle, "FOX SPORTS", the NBC
+   wordmark -- which all but vanish on the dark card. A light chip keeps the column readable
+   there; the light theme needs nothing. */
+.dark .schedule-row .net-mark { box-sizing: content-box; padding: 2px 4px; border-radius: 3px; background: hsl(0 0% 100%); }
 /* The week board sizes its own contents: the side column takes 175px + a 24px gap out of the
    viewport, so a row's width tracks the board, not the window. At 16px the widest short name
    ("Commanders", 82px in Space Grotesk Bold) needs 566px of board; below that, switch to the
@@ -130,7 +133,7 @@
   }
 }
 .schedule-row { transition: background-color 160ms ease, transform 160ms ease; }
-.schedule-row:hover { background: hsl(218 25% 97%); --sc-net-knockout: hsl(218 25% 97%); }
+.schedule-row:hover { background: hsl(218 25% 97%); }
 .team-row { transition: background-color 160ms ease; }
 /* The schedule table sizes its own contents: names/metrics respond to the table's width,
    not the viewport, so the side panel appearing or disappearing is accounted for. */
@@ -159,7 +162,6 @@
 .team-lens-head .team-mark { height: 1.867em; width: 1.867em; }
 .team-row:hover { background: hsl(218 25% 97%); }
 .dark .team-row:hover, .dark .schedule-row:hover { background: hsl(220 31% 18%); }
-.dark .schedule-row:hover { --sc-net-knockout: hsl(220 31% 18%); }
 .border.bg-card { box-shadow: 0 1px 2px rgba(22, 35, 58, 0.05), 0 6px 20px rgba(22, 35, 58, 0.05); }
 .team-mark { transition: transform 180ms ease; }
 .team-mark:hover { transform: translateY(-2px); }

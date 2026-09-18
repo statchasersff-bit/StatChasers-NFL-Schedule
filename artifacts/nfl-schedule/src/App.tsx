@@ -176,18 +176,18 @@ function WeekRail({ week, setState }: { week: number; setState: typeof updateSta
   );
 }
 
-/** One broadcaster logo, drawn in the row's own text colour. */
+/** One broadcaster logo. The artwork is a data URI, so it paints with the row, not after it. */
 function NetworkMarkIcon({ mark }: { mark: NetworkMark }) {
   return (
-    <svg
+    <img
       className="net-mark"
-      viewBox={mark.viewBox}
-      style={{ height: `${mark.height}em` }}
-      role="img"
-      aria-label={mark.label}
-      // Generated at build time from the artwork in scripts/build-network-logos.mjs, never from
-      // feed data, so there is nothing here for a schedule response to inject.
-      dangerouslySetInnerHTML={{ __html: mark.body }}
+      src={mark.src}
+      alt={mark.label}
+      width={mark.width}
+      height={mark.height}
+      style={{ '--net-scale': mark.scale } as CSSProperties}
+      loading="eager"
+      decoding="sync"
     />
   );
 }
@@ -248,7 +248,7 @@ function GameRow({ game, teams }: { game: NflGame; teams: NflTeam[] }) {
       </div>
       <div className="text-right">
         <NetworkCell network={game.network} id={game.id} />
-        {(game.divisionGame || game.holiday) && <div className="mt-0.5 flex flex-wrap items-center justify-end gap-1">{game.divisionGame && <span className="shrink-0 border border-border px-1.5 py-0.5 text-[0.5625em] font-bold uppercase tracking-[0.08em] text-muted-foreground">Div</span>}{game.holiday && <span className="shrink-0 truncate border border-border px-1.5 py-0.5 text-[0.5625em] font-bold uppercase tracking-[0.08em] text-muted-foreground">{game.holiday}</span>}</div>}
+        {game.holiday && <div className="mt-0.5 flex items-center justify-end"><span className="shrink-0 truncate border border-border px-1.5 py-0.5 text-[0.5625em] font-bold uppercase tracking-[0.08em] text-muted-foreground">{game.holiday}</span></div>}
       </div>
     </article>
   );

@@ -186,14 +186,16 @@
 	white-space: nowrap;
 }
 
-/* Broadcaster marks. Two-tone artwork: the ink is currentColor so a logo takes the theme's text
-   colour, and the holes a logo punches through itself fall back to the page canvas, which keeps
-   them readable on a light theme and a dark one. Height comes from the mark's own inline style --
-   a shield and a wordmark need different optical sizes -- so only the width is constrained here. */
+/* Broadcaster logos scale down into one shared box rather than to a fixed height, so a shield and
+   a wordmark four times as wide settle at the right weight against each other. The artwork is a
+   data URI, so it paints with the table. */
 .sc-nfl-net {
 	width: auto;
-	max-width: 5em;
-	vertical-align: -0.15em;
+	height: auto;
+	max-width: calc(3.6em * var(--net-scale, 1));
+	max-height: calc(1.5em * var(--net-scale, 1));
+	object-fit: contain;
+	vertical-align: -0.35em;
 }
 
 .sc-nfl-net + .sc-nfl-net {

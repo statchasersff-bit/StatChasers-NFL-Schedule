@@ -409,8 +409,8 @@ class SC_NFL_Render {
 	 * The TV cell: the broadcaster's logo where there is one, its name where there is not.
 	 *
 	 * ESPN reports a simulcast as a single string ("ESPN / ABC"), so each side is resolved
-	 * separately. Marks are two-tone -- the ink follows the surrounding text colour and the
-	 * knockouts fall back to the page canvas -- so they read against whatever the theme paints.
+	 * separately. The artwork is a data URI, so it costs no request and cannot be broken by a
+	 * caching plugin rewriting asset paths.
 	 *
 	 * @param string|null $network Broadcaster name from the feed.
 	 * @return string HTML.
@@ -433,14 +433,13 @@ class SC_NFL_Render {
 			}
 			$seen[ $slug ] = true;
 			$mark          = self::$networks['marks'][ $slug ];
-			// 'body' is generated markup from a trusted source, never feed data, so it is echoed
-			// as-is; everything around it is escaped.
 			$html .= sprintf(
-				'<svg class="sc-nfl-net" viewBox="%1$s" style="height:%2$sem" role="img" aria-label="%3$s">%4$s</svg>',
-				esc_attr( $mark['viewBox'] ),
-				esc_attr( $mark['height'] ),
+				'<img class="sc-nfl-net" src="%1$s" alt="%2$s" width="%3$d" height="%4$d" style="--net-scale:%5$s" loading="eager" decoding="sync" />',
+				esc_attr( $mark['src'] ),
 				esc_attr( $mark['label'] ),
-				$mark['body']
+				(int) $mark['width'],
+				(int) $mark['height'],
+				esc_attr( $mark['scale'] )
 			);
 		}
 

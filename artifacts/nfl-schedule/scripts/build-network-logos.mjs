@@ -1,20 +1,20 @@
 /**
  * Rebuilds the broadcaster marks shown in the TV column of the weekly board.
  *
- *   node scripts/build-network-logos.mjs
+ *   node scripts/build-network-logos.mjs      (or: npm run build:logos)
  *
- * Logos are pulled from Wikimedia (Commons, plus en.wikipedia for the NFL shield, which Commons
- * does not carry) and rewritten into two-tone SVG that the schedule can theme:
+ * Six of the nine come from artwork saved in attached_assets/ -- the sports-division logos, which
+ * are the right ones for a schedule: "CBS Sports" and "FOX Sports" rather than the network
+ * wordmarks. They are matched by name prefix, not by exact filename, so re-saving one under a new
+ * timestamp does not break the build.
  *
- *   currentColor            the ink, so a mark follows the surrounding text colour and stays
- *                           legible on the white card and on the dark card alike;
- *   var(--sc-net-knockout)  the holes a logo punches through its own ink -- the "abc" inside its
- *                           circle, the shield's lettering and stars -- bound to whatever the row
- *                           is sitting on.
+ * The other three -- NFL Network, Prime Video, Peacock -- are not in that folder and are pulled
+ * from Wikimedia instead, in their own colours, so the whole set reads as one row.
  *
- * Full-colour marks were tried first and rejected: at the ~14px the row allows, CBS/FOX/ABC are
- * black wordmarks that vanish on the dark card, and the shield turns to mush. Two-tone reads at
- * that size in both themes, which is the whole job here.
+ * Every mark ends up as a self-contained data URI on an <img>: no extra requests, nothing for the
+ * WordPress asset path or the shadow root to resolve, and one code path in both consumers.
+ * Raster art is trimmed to its own bounds and re-encoded at 96px tall, which is 4x the largest
+ * size the row ever draws.
  *
  * Writes, and nothing else:
  *   src/lib/network-logos.ts                                     (the React weekly board)
@@ -22,73 +22,55 @@
  *
  * Both are generated -- edit this file and re-run rather than patching the output.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { promisify } from 'node:util';
 
+const run = promisify(execFile);
 const ROOT = path.resolve(import.meta.dirname, '..');
+const ASSETS = path.resolve(ROOT, '..', '..', 'attached_assets');
 const PLUGIN = path.resolve(ROOT, '..', 'wordpress-plugin', 'statchasers-nfl-schedule');
 const UA = 'statchasers-nfl-schedule logo build (https://statchasers.com/nfl/nfl-schedule/)';
 
-const INK = 'currentColor';
-// `Canvas` is the fallback on purpose: the static table inherits the WordPress theme's colours
-// and cannot know its own background, so a knockout there falls back to the page canvas. The
-// app overrides the variable with the exact card colour.
-const HOLE = 'var(--sc-net-knockout, Canvas)';
+/** Every raster mark is encoded at this height, then scaled down by CSS. */
+const RASTER_HEIGHT = 96;
 
 /**
- * One entry per mark. `roles` maps a fill in the source file to the role it plays here; a fill of
- * `null` means the element carries no fill of its own.
+ * One entry per mark.
  *
- * `height` is the mark's optical size, in em of the row. Matching marks on height alone makes the
- * portrait ones look shrunken next to a wordmark four times as wide -- a shield set to the same
- * height as "NETFLIX" is a sixth of its area -- so the compact marks are given more of it.
+ * Marks are not given sizes: every one is scaled to fit a single box, a little under the size of a
+ * team crest, and `object-fit` sorts out the rest. A shield and a wordmark four times as wide then
+ * settle at the right relative weight on their own, which hand-tuned heights never quite did.
+ *
+ * `scale` is the exception, for a mark that fills its box more heavily than the geometry suggests.
+ * FOX Sports is a two-line lockup of solid black type, so at the shared box it reads as the
+ * loudest thing in the column even though it measures the same as the rest.
+ *
+ * `prefix` matches a file in attached_assets/. `wikimedia` fetches one instead, for the
+ * broadcasters that folder does not cover.
  */
 const SOURCES = {
-  abc: {
-    label: 'ABC',
-    host: 'commons.wikimedia.org',
-    file: 'File:ABC-2021-LOGO.svg',
-    // The source declares 1000x1000 with no viewBox; the circle it draws is r=488.9 about (488.9),
-    // scaled by 1.0227, which fills exactly that square.
-    viewBox: '0 0 1000 1000',
-    height: 1.4,
-    roles: { '#07111e': INK, '#f0f0f0': HOLE },
-  },
-  cbs: { label: 'CBS', host: 'commons.wikimedia.org', file: 'File:CBS 2018.svg', roles: {} },
-  espn: {
-    label: 'ESPN',
-    host: 'commons.wikimedia.org',
-    file: 'File:ESPN wordmark.svg',
-    roles: { '#e52534': INK },
-  },
-  fox: {
-    label: 'FOX',
-    host: 'commons.wikimedia.org',
-    file: 'File:Fox Broadcasting Company logo (2019).svg',
-    roles: { '#111212': INK },
-  },
-  nbc: {
-    label: 'NBC',
-    host: 'commons.wikimedia.org',
-    file: 'File:NBC logo 2022.svg',
-    roles: {
-      '#6e55dc': INK, '#ef1541': INK, '#ff7112': INK,
-      '#fccc12': INK, '#069de0': INK, '#05ac3f': INK,
-    },
-  },
+  abc: { label: 'ABC', prefix: 'ABC_logo' },
+  cbs: { label: 'CBS Sports', prefix: 'CBS_Sports' },
+  espn: { label: 'ESPN', prefix: 'ESPN_logo' },
+  fox: { label: 'FOX Sports', prefix: 'Fox_Sports_Logo', scale: 0.8 },
+  nbc: { label: 'NBC', prefix: 'NBC_logo' },
   netflix: {
     label: 'Netflix',
-    host: 'commons.wikimedia.org',
-    file: 'File:Netflix 2015 logo.svg',
-    roles: { '#d81f26': INK },
+    prefix: 'Netflix_Logo',
+    // The only one saved on a white card rather than on transparency. Flood-filling in from the
+    // corners lifts the card without touching the white inside a letter, which a plain
+    // -transparent would punch through -- the source is lossy enough that its "white" is a spread
+    // of near-whites, so it needs the fuzz as well as the flood fill.
+    flatten: true,
   },
   nfl: {
     label: 'NFL Network',
-    host: 'en.wikipedia.org',
-    file: 'File:NFL Network logo.svg',
+    wikimedia: { host: 'en.wikipedia.org', file: 'File:NFL Network logo.svg' },
     // The source is the stacked lockup: shield over a "NETWORK" wordmark, which at row height is
     // an unreadable smudge. Drop the wordmark -- the last group, one path per letter -- and keep
-    // the shield, which still reads at 14px. `viewBox` is that shield's own bounds.
+    // the shield, which still reads at 24px. `viewBox` is that shield's own bounds.
     trim: (svg) => {
       const start = svg.lastIndexOf('<g fill="#013369">');
       const end = svg.indexOf('</g>', start);
@@ -96,23 +78,14 @@ const SOURCES = {
       return svg.slice(0, start) + svg.slice(end + 4);
     },
     viewBox: '154.5 0.3 73.2 100.8',
-    height: 1.5,
-    roles: { '#fff': HOLE, '#ffffff': HOLE, '#013369': INK, '#d50a0a': INK },
-  },
-  peacock: {
-    label: 'Peacock',
-    host: 'commons.wikimedia.org',
-    file: 'File:NBCUniversal Peacock Logo (2020–2026).svg',
-    roles: {
-      '#069de0': INK, '#6e55dc': INK, '#05ac3f': INK,
-      '#ef1541': INK, '#ff7112': INK, '#fccc12': INK,
-    },
   },
   prime: {
     label: 'Prime Video',
-    host: 'commons.wikimedia.org',
-    file: 'File:Prime Video logo (2024).svg',
-    roles: { '#0779ff': INK },
+    wikimedia: { host: 'commons.wikimedia.org', file: 'File:Prime Video logo (2024).svg' },
+  },
+  peacock: {
+    label: 'Peacock',
+    wikimedia: { host: 'commons.wikimedia.org', file: 'File:NBCUniversal Peacock Logo (2020–2026).svg' },
   },
 };
 
@@ -148,31 +121,74 @@ const ALIASES = {
   'AMAZON PRIME VIDEO': 'prime',
 };
 
-async function wikimedia(host, file) {
+/** The saved file for a mark, matched on prefix so a re-save under a new timestamp still resolves. */
+async function findAsset(slug, prefix) {
+  const matches = (await readdir(ASSETS))
+    .filter((name) => name.startsWith(prefix) && /\.(png|webp|jpe?g)$/i.test(name))
+    .sort();
+  if (!matches.length) throw new Error(`${slug}: no attached_assets file starting "${prefix}"`);
+  // Newest wins when the same logo has been saved more than once; the names carry a timestamp.
+  return path.join(ASSETS, matches[matches.length - 1]);
+}
+
+async function magick(args) {
+  const { stdout } = await run('magick', args, { maxBuffer: 64 * 1024 * 1024, encoding: 'buffer' });
+  return stdout;
+}
+
+/** Trim to the artwork's own bounds and re-encode small, keeping transparency. */
+async function raster(slug, source) {
+  const file = await findAsset(slug, source.prefix);
+  const out = path.join(ROOT, 'node_modules', '.cache', `sc-net-${slug}.webp`);
+  await mkdir(path.dirname(out), { recursive: true });
+
+  const clean = [];
+  if (source.flatten) {
+    const size = String(await magick([file, '-format', '%[fx:w-1] %[fx:h-1]', 'info:'])).split(' ');
+    const [right, bottom] = size;
+    clean.push('-alpha', 'set', '-fuzz', '12%', '-fill', 'none');
+    for (const [x, y] of [[0, 0], [right, 0], [0, bottom], [right, bottom]]) {
+      clean.push('-draw', `alpha ${x},${y} floodfill`);
+    }
+  }
+
+  await magick([
+    file, ...clean,
+    '-trim', '+repage',
+    '-resize', `x${RASTER_HEIGHT}`,
+    '-background', 'none', '-strip', '-quality', '88',
+    out,
+  ]);
+
+  const [width, height] = String(await magick([out, '-format', '%w %h', 'info:'])).split(' ').map(Number);
+  const bytes = await readFile(out);
+  if (!width || !height) throw new Error(`${slug}: re-encode produced no image`);
+  return { src: `data:image/webp;base64,${bytes.toString('base64')}`, width, height, bytes: bytes.length };
+}
+
+async function wikimedia(slug, { host, file }) {
   const query = new URLSearchParams({
     action: 'query', format: 'json', prop: 'imageinfo', iiprop: 'url|mime', titles: file,
   });
   const meta = await fetch(`https://${host}/w/api.php?${query}`, { headers: { 'User-Agent': UA } });
-  if (!meta.ok) throw new Error(`${file}: imageinfo ${meta.status}`);
-  const pages = Object.values((await meta.json()).query.pages);
-  const info = pages[0]?.imageinfo?.[0];
-  if (!info) throw new Error(`${file}: not found on ${host}`);
-  if (info.mime !== 'image/svg+xml') throw new Error(`${file}: ${info.mime}, expected SVG`);
+  if (!meta.ok) throw new Error(`${slug}: imageinfo ${meta.status}`);
+  const info = Object.values((await meta.json()).query.pages)[0]?.imageinfo?.[0];
+  if (!info) throw new Error(`${slug}: ${file} not found on ${host}`);
+  if (info.mime !== 'image/svg+xml') throw new Error(`${slug}: ${info.mime}, expected SVG`);
 
   const asset = await fetch(info.url, { headers: { 'User-Agent': UA } });
-  if (!asset.ok) throw new Error(`${file}: download ${asset.status}`);
+  if (!asset.ok) throw new Error(`${slug}: download ${asset.status}`);
   return { svg: await asset.text(), url: info.url.split('?')[0] };
 }
 
-/** Inkscape writes fills into `style=""`; hoist the fill out so one code path handles both forms. */
-function hoistStyleFill(attrs) {
-  return attrs.replace(/\sstyle="([^"]*)"/g, (_, style) => {
-    const fill = /(?:^|;)\s*fill\s*:\s*([^;]+)/.exec(style);
-    return fill ? ` fill="${fill[1].trim()}"` : '';
-  });
-}
-
-function normalize(slug, source, raw) {
+/**
+ * Strip a downloaded SVG to something safe to inline, keeping its own colours.
+ *
+ * These ride in an <img src="data:...">, which is its own document: no external references
+ * resolve, no script runs, and nothing inherits from the page. So the only job here is dropping
+ * editor leftovers and pinning a viewBox, since several sources declare a size and no box.
+ */
+function cleanSvg(slug, source, raw) {
   const svg = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(raw);
   if (!svg) throw new Error(`${slug}: no <svg> element`);
   const [, attrs] = svg;
@@ -188,70 +204,72 @@ function normalize(slug, source, raw) {
     else throw new Error(`${slug}: no viewBox and no usable width/height`);
   }
 
-  // Editor leftovers. None of them paint anything, and they drag in namespaces we would have to
-  // declare on the inlined element.
   for (const pattern of [
     /<\?xml[^>]*\?>/g, /<!--[\s\S]*?-->/g, /<metadata\b[\s\S]*?<\/metadata>/g,
     /<defs\b[\s\S]*?<\/defs>/g, /<defs\b[^>]*\/>/g,
     /<sodipodi:namedview\b[\s\S]*?\/>/g, /<sodipodi:namedview\b[\s\S]*?<\/sodipodi:namedview>/g,
+    /<script\b[\s\S]*?<\/script>/g, /<image\b[^>]*>/g,
   ]) body = body.replace(pattern, '');
 
-  const unmapped = new Set();
-  body = body.replace(/<(path|g|circle|rect|polygon|ellipse)\b([^>]*?)(\/?)>/g, (_, name, rest, close) => {
-    let attributes = hoistStyleFill(rest);
-    const fill = /\sfill="([^"]*)"/.exec(attributes);
-    const key = fill ? fill[1].trim().toLowerCase() : null;
-    attributes = attributes
-      .replace(/\sfill="[^"]*"/g, '')
-      .replace(/\s(?:id|xml:space|enable-background|inkscape:[\w-]+|sodipodi:[\w-]+)="[^"]*"/g, '');
-    if (key === 'none') return `<${name}${attributes}${close}>`;
-    // A bare <g> inherits the ink from the root, so only a real colour can be unmapped.
-    let role = key === null ? INK : source.roles[key];
-    if (!role) {
-      unmapped.add(key);
-      role = INK;
-    }
-    return `<${name} fill="${role}"${attributes}${close}>`;
+  // Inkscape writes the paint into style=""; hoist the fill so both forms survive minification.
+  body = body.replace(/\sstyle="([^"]*)"/g, (_, style) => {
+    const fill = /(?:^|;)\s*fill\s*:\s*([^;]+)/.exec(style);
+    return fill ? ` fill="${fill[1].trim()}"` : '';
   });
-  if (unmapped.size) {
-    throw new Error(`${slug}: unmapped fills ${[...unmapped].join(', ')} -- add them to roles`);
-  }
-
+  body = body.replace(/\s(?:id|xml:space|enable-background|inkscape:[\w-]+|sodipodi:[\w-]+)="[^"]*"/g, '');
   body = body.replace(/\s+/g, ' ').replace(/> </g, '><').trim();
   if (!body.includes('<path')) throw new Error(`${slug}: nothing left to draw`);
-  if (!body.includes(INK)) throw new Error(`${slug}: no ink -- the mark would be invisible`);
-  return { viewBox, body };
+
+  const [, , width, height] = viewBox.split(/[\s,]+/).map(Number);
+  const markup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${body}</svg>`;
+  return {
+    src: `data:image/svg+xml;base64,${Buffer.from(markup, 'utf8').toString('base64')}`,
+    width: Math.round(width),
+    height: Math.round(height),
+    bytes: markup.length,
+  };
 }
 
 const BANNER = 'Generated by scripts/build-network-logos.mjs -- do not edit.';
+
+/**
+ * Header for both generated files. Kept free of apostrophes so the PHP output stays trivially
+ * checkable for balanced quotes without a PHP parser to hand.
+ */
+const DESCRIPTION = [
+  'Broadcaster marks for the TV column, as self-contained data URIs. `width` and `height` are the',
+  'pixel size of the artwork itself; CSS scales each one down into a shared box, a little smaller',
+  'than a team crest, so the set reads at one weight. `scale` trims that box for the rare mark',
+  'whose ink is heavier than its measurements suggest.',
+];
 
 function emitTs(marks) {
   const entries = Object.entries(marks).map(([slug, mark]) =>
     `  ${slug}: {\n` +
     `    label: ${JSON.stringify(mark.label)},\n` +
-    `    source: ${JSON.stringify(mark.url)},\n` +
-    `    viewBox: ${JSON.stringify(mark.viewBox)},\n` +
+    `    source: ${JSON.stringify(mark.source)},\n` +
+    `    width: ${mark.width},\n` +
     `    height: ${mark.height},\n` +
-    `    body: ${JSON.stringify(mark.body)},\n` +
+    `    scale: ${mark.scale},\n` +
+    `    src: ${JSON.stringify(mark.src)},\n` +
     `  },`).join('\n');
   const aliases = Object.entries(ALIASES)
     .map(([name, slug]) => `  ${JSON.stringify(name)}: '${slug}',`).join('\n');
 
   return `// ${BANNER}
-// Two-tone broadcaster marks for the weekly board's TV column. \`body\` is inlined into an <svg>
-// so the ink follows \`currentColor\`; the knockouts read \`--sc-net-knockout\`, which app.css binds
-// to whatever the row is sitting on.
+${DESCRIPTION.map((line) => `// ${line}`).join('\n')}
 
 export type NetworkMark = {
-  /** Broadcaster name, for the accessible label and the tooltip. */
+  /** Broadcaster name, for the image's alt text and the cell's tooltip. */
   label: string;
   /** Where the artwork came from, so the next person can check it against the current logo. */
   source: string;
-  viewBox: string;
-  /** Optical size in em of the row -- see the note on SOURCES in the generator. */
+  /** The artwork's own pixel size, so the row reserves the right box before it paints. */
+  width: number;
   height: number;
-  /** Inner SVG markup. Generated from trusted sources at build time, never from feed data. */
-  body: string;
+  /** Fraction of the shared box this mark may fill. 1 unless it needs holding back. */
+  scale: number;
+  src: string;
 };
 
 export const NETWORK_MARKS: Record<string, NetworkMark> = {
@@ -287,11 +305,12 @@ function emitPhp(marks) {
   const php = (value) => `'${String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
   const entries = Object.entries(marks).map(([slug, mark]) =>
     `\t\t${php(slug)} => array(\n` +
-    `\t\t\t'label'   => ${php(mark.label)},\n` +
-    `\t\t\t'source'  => ${php(mark.url)},\n` +
-    `\t\t\t'viewBox' => ${php(mark.viewBox)},\n` +
-    `\t\t\t'height'  => ${mark.height},\n` +
-    `\t\t\t'body'    => ${php(mark.body)},\n` +
+    `\t\t\t'label'  => ${php(mark.label)},\n` +
+    `\t\t\t'source' => ${php(mark.source)},\n` +
+    `\t\t\t'width'  => ${mark.width},\n` +
+    `\t\t\t'height' => ${mark.height},\n` +
+    `\t\t\t'scale'  => ${mark.scale},\n` +
+    `\t\t\t'src'    => ${php(mark.src)},\n` +
     `\t\t),`).join('\n');
   const aliases = Object.entries(ALIASES)
     .map(([name, slug]) => `\t\t${php(name)} => ${php(slug)},`).join('\n');
@@ -300,9 +319,7 @@ function emitPhp(marks) {
 /**
  * ${BANNER}
  *
- * Two-tone broadcaster marks for the static table's TV column, matching the app's weekly board.
- * 'body' is trusted markup built here from Wikimedia artwork -- it never contains feed data --
- * and is echoed unescaped by SC_NFL_Render.
+${DESCRIPTION.map((line) => ` * ${line}`).join('\n')}
  *
  * @package StatChasers\\NFLSchedule
  */
@@ -324,11 +341,18 @@ ${aliases}
 
 const marks = {};
 for (const [slug, source] of Object.entries(SOURCES)) {
-  const { svg, url } = await wikimedia(source.host, source.file);
-  const trimmed = source.trim ? source.trim(svg) : svg;
-  const { viewBox, body } = normalize(slug, source, trimmed);
-  marks[slug] = { label: source.label, url, viewBox, body, height: source.height ?? 1 };
-  console.log(`${slug.padEnd(8)} ${String(body.length).padStart(5)} bytes  ${url}`);
+  let art;
+  let origin;
+  if (source.wikimedia) {
+    const { svg, url } = await wikimedia(slug, source.wikimedia);
+    art = cleanSvg(slug, source, source.trim ? source.trim(svg) : svg);
+    origin = url;
+  } else {
+    art = await raster(slug, source);
+    origin = path.relative(path.resolve(ROOT, '..', '..'), await findAsset(slug, source.prefix));
+  }
+  marks[slug] = { label: source.label, source: origin, scale: source.scale ?? 1, ...art };
+  console.log(`${slug.padEnd(8)} ${String(art.width).padStart(4)}x${art.height}  ${String(art.bytes).padStart(6)} bytes  ${origin}`);
 }
 
 for (const slug of new Set(Object.values(ALIASES))) {
@@ -338,4 +362,5 @@ for (const slug of new Set(Object.values(ALIASES))) {
 await mkdir(path.join(ROOT, 'src', 'lib'), { recursive: true });
 await writeFile(path.join(ROOT, 'src', 'lib', 'network-logos.ts'), emitTs(marks));
 await writeFile(path.join(PLUGIN, 'includes', 'network-marks.php'), emitPhp(marks));
-console.log('\nwrote src/lib/network-logos.ts and the plugin network-marks.php');
+const total = Object.values(marks).reduce((sum, mark) => sum + mark.src.length, 0);
+console.log(`\n${Object.keys(marks).length} marks, ${(total / 1024).toFixed(1)} KB of data URIs`);
